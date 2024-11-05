@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Introduction to tidywater: Basic functions</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Introduction to tidywater: Basic
+functions</h1>
+
+
+
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(tidywater)</span></code></pre></div>
+<div id="defining-a-water" class="section level2">
+<h2>Defining a water</h2>
+<p>The first step for any modelling project using tidywater is to define
+your starting water quality. This can be done using the
+<code>define_water</code> function. This function allows you to input
+everything you know about your water (pH, alkalinity, temperature,
+etc.). It also standardizes units for subsequent modelling steps,
+calculates the carbonate balance from the alkalinity and pH (if
+provided), and estimates the ionic strength of the water from your
+inputs. The function then takes all this information and creates a
+unique object of class “water” (for more details, see
+<a href="https://adv-r.hadley.nz/s4.html"> R’s S4 class</a>).</p>
+<p>The “water” class is the building block of tidywater and allows you
+to keep track of all the changes in your water through various water
+treatment processes in a tidy way. Think of the “water” class as a
+snapshot of everything that is known about a water at each step in a
+modelling process.</p>
+<p>Why does tidywater depend on this special class instead of just using
+a data frame? The water class is a good way to standardize inputs and
+set up a data structure that would reduce user error. Funneling users
+through <code>define_water</code> reduces naming errors in downstream
+functions. It also ensures that all slots have the proper data class.
+For example, <code>ph</code> must always be a number, and
+<code>treatment</code> is always a character.</p>
+<p>To start, let’s create a blank water class and call it
+<code>empty_water.</code></p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>empty_water <span class="ot">&lt;-</span> <span class="fu">define_water</span>()</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="co">#&gt; Warning in define_water(): Missing value for pH. Carbonate balance will not be</span></span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="co">#&gt; calculated.</span></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="co">#&gt; Warning in define_water(): Missing value for alkalinity. Carbonate balance will</span></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co">#&gt; not be calculated.</span></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="co">#&gt; Warning in define_water(): Major ions missing and neither TDS or conductivity</span></span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="co">#&gt; entered. Ideal conditions will be assumed. Ionic strength will be set to NA and</span></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="co">#&gt; activity coefficients in future calculations will be set to 1.</span></span></code></pre></div>
+<p>Notice that several warnings are generated about the water class.
+<code>define_water</code> will return warnings noting the assumptions
+and limitations of the water class depending on how much information you
+provided. For example, since we did not provide any information about
+the water’s pH or alkalinity, the carbonate balance cannot be
+calculated. Similarly, since we did not provide any information about
+major ions in the water, information about the water’s hardness and
+ionic strength are missing.</p>
+<p>Even so, we successfully created our first water class! You can view
+the first few slots that a water class can contain by printing
+<code>empty_water</code>. But there are slots for general parameters,
+carbon content, corrosivity indicators, major cations and anions, and
+disinfection byproducts (DBPs). Different functions within tidywater
+will allow you to model all these parameters and more.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">print</span>(empty_water)</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="co">#&gt; pH (unitless):  NA </span></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co">#&gt; Temperature (deg C):  25 </span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co">#&gt; Alkalinity (mg/L CaCO3):  NA </span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt; Use summary functions or slot names to view other parameters.</span></span></code></pre></div>
+<p>So let’s add some things to this water that we already know. Let’s
+say we know pH, alkalinity, temperature, and the sodium concentration.
+We can define each of these parameters as arguments in
+<code>define_water</code>, which accepts pH (unitless), alkalinity in
+units of mg/L CaCO3, temperature in degrees C, and ions in mg/L (with
+the exception of bromide and manganese, reported as ug/L). The function
+also refers to all chemical compounds by their chemical symbol or
+formula. Let’s call the new water class <code>my_water.</code></p>
+<p>Notice that the slots for <code>ph</code>, <code>alk</code>,
+<code>temp</code>,and <code>na</code> are now populated when we print
+out the resulting water. The sodium slot (<code>na</code>) is output in
+units of mol/L (M). We can also see that <code>define_water</code>
+automatically calculated the amount of carbonate (<code>co3</code>) and
+bicarbonate (<code>hco3</code>) in the water based on the alkalinity and
+pH.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>my_water <span class="ot">&lt;-</span> <span class="fu">define_water</span>(<span class="at">ph =</span> <span class="fl">7.5</span>, <span class="at">alk =</span> <span class="dv">100</span>, <span class="at">temp =</span> <span class="dv">20</span>, <span class="at">na =</span> <span class="dv">5</span>)</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>my_water</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="co">#&gt; pH (unitless):  7.5 </span></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="co">#&gt; Temperature (deg C):  20 </span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="co">#&gt; Alkalinity (mg/L CaCO3):  100 </span></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="co">#&gt; Use summary functions or slot names to view other parameters.</span></span></code></pre></div>
+<p>You can easily summarize your water quality using the
+<code>summarize_wq</code> function, which takes a water class object and
+exports an easy-to-read table of the water quality into the console.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">summarize_wq</span>(my_water)</span></code></pre></div>
+<table class="kable_wrapper">
+<tbody>
+<tr>
+<td>
+<table>
+<thead>
+<tr class="header">
+<th align="left">General water quality parameters</th>
+<th align="right">Result</th>
+<th align="left">Units</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">pH</td>
+<td align="right">7.5</td>
+<td align="left">-</td>
+</tr>
+<tr class="even">
+<td align="left">Temp</td>
+<td align="right">20.0</td>
+<td align="left">deg C</td>
+</tr>
+<tr class="odd">
+<td align="left">Alkalinity</td>
+<td align="right">100.0</td>
+<td align="left">mg/L as CaCO3</td>
+</tr>
+<tr class="even">
+<td align="left">Total_Hardness</td>
+<td align="right">NA</td>
+<td align="left">mg/L as CaCO3</td>
+</tr>
+<tr class="odd">
+<td align="left">TDS</td>
+<td align="right">NA</td>
+<td align="left">mg/L</td>
+</tr>
+<tr class="even">
+<td align="left">Conductivity</td>
+<td align="right">NA</td>
+<td align="left">uS/cm</td>
+</tr>
+<tr class="odd">
+<td align="left">TOC</td>
+<td align="right">NA</td>
+<td align="left">mg/L</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+<p>This is a great way to get started with <code>tidywater</code> for
+users who only need to model a single water quality. If you have a large
+data set with multiple water qualities that you want to model, though,
+this might sound tedious. It wouldn’t be possible to manually enter your
+pH, alkalinity, temperature, etc. for, let’s say, 5,000 rows. Instead,
+<code>tidywater</code> has helper functions to generate many water
+classes simultaneously from an imported data set. See the
+<code>help_functions_blend</code> vignette for large data processing
+(paste this in the console:
+<code>vignette(&quot;help_functions_blend&quot;, package = &quot;tidywater&quot;)</code>).</p>
+</div>
+<div id="plotting-and-balancing-ions" class="section level2">
+<h2>Plotting and balancing ions</h2>
+<p>Back to our single use case, you’ll notice one of the warnings alerts
+the user to missing cations and/or anions, and that you should use
+<code>balance_ions</code> to correct this. This is based on the
+electroneutrality principle which states that the charges of all the
+cations and anions in a water should add up to 0. If your water is
+missing any ions, it is likely that it isn’t balanced. This could cause
+the results of your model to be off.</p>
+<p>To check, you can use the <code>plot_ions</code> function on our
+<code>water</code> object to see what the current ion balance looks
+like. You can see that cation and anion bars are not equal, so this is
+not very realistic.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="fu">plot_ions</span>(my_water)</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="co">#&gt; Warning: Removed 5 rows containing missing values or values outside the scale range</span></span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="co">#&gt; (`geom_bar()`).</span></span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="co">#&gt; Warning: Removed 5 rows containing missing values or values outside the scale range</span></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="co">#&gt; (`geom_text()`).</span></span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a><span class="co">#&gt; Warning: Removed 5 rows containing missing values or values outside the scale range</span></span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a><span class="co">#&gt; (`geom_text_repel()`).</span></span></code></pre></div>
+<p><img role="img" src="data:image/png;base64,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" /><!-- -->
+To correct this, the <code>balance_ions</code> function automatically
+adds in sodium, potassium, chloride, or sulfate until anions + cations =
+0. Let’s see what happens to the ion plot when we use
+<code>balance_ions</code> to estimate the missing ion
+concentrations.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>balanced_water <span class="ot">&lt;-</span> my_water <span class="sc">%&gt;%</span> <span class="fu">balance_ions</span>()</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="fu">plot_ions</span>(balanced_water)</span></code></pre></div>
+<p><img role="img" src="data:image/png;base64,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" /><!-- -->
+Great! <code>balance_ions</code> added potassium to
+<code>my_water</code> so it is now electrically neutral. To see how much
+potassium was added, you can use the “@” symbol with a
+<code>water</code> class object to access the slot you want, in this
+case, potassium.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>my_water<span class="sc">@</span>k <span class="co"># We did not input any potassium in the original water</span></span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="co">#&gt; [1] NA</span></span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>balanced_water<span class="sc">@</span>k <span class="co"># The balanced water now contains 0.00178 M of potassium</span></span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a><span class="co">#&gt; [1] 0.001780775</span></span></code></pre></div>
+</div>
+<div id="converting-units" class="section level2">
+<h2>Converting units</h2>
+<p>The potassium units are in M. What if you want to know what that is
+in mg/L? There are two ways to do this in tidywater. The easiest way is
+to use the <code>summarize_wq</code> function shown above, which
+converts the ion concentrations back to mg/L.</p>
+<p>Another option is to use the <code>convert_units</code> function,
+which allows you to specify the chemical and the starting and ending
+units. In this case, we want to convert the potassium concentration in
+<code>balanced_water</code> from M to mg/L.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="fu">convert_units</span>(<span class="at">value =</span> balanced_water<span class="sc">@</span>k, <span class="at">formula =</span> <span class="st">&quot;k&quot;</span>, <span class="at">startunit =</span> <span class="st">&quot;M&quot;</span>, <span class="at">endunit =</span> <span class="st">&quot;mg/L&quot;</span>)</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="co">#&gt; [1] 69.62529</span></span></code></pre></div>
+</div>
+<div id="modelling-assumptions" class="section level2">
+<h2>Modelling assumptions</h2>
+<div id="ionic-strength" class="section level3">
+<h3>Ionic strength</h3>
+<p>Obviously, “adding” 69.6 mg/L of potassium to <code>my_water</code>
+is an assumption. There could be other cations in the water besides
+potassium that we don’t know about. But having a balanced
+<code>water</code> is important because it affects the ionic strength,
+which in turn affects how different species interact when we dose
+chemicals into the <code>water</code>. You can see more detail on ionic
+strength and chemical dosing in the <code>chemdose_ph</code> vignette,
+but for now let’s take a look at the ionic strength of
+<code>my_water</code> before and after balancing the ions.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="co"># The ionic strength slot was NA in the original water because we did not</span></span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="co"># provide enough information to calculate it</span></span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>my_water<span class="sc">@</span>is</span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a><span class="co">#&gt; [1] NA</span></span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a>balanced_water<span class="sc">@</span>is <span class="co"># Now the ionic strength is 0.002 M</span></span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="co">#&gt; [1] NA</span></span></code></pre></div>
+<p>There are a couple of other assumptions that
+<code>define_water</code> makes to be able to set up the data for
+downstream <code>tidywater</code> functions. These include standard
+ratios for hardness and DOC.</p>
+</div>
+<div id="hardness" class="section level3">
+<h3>Hardness</h3>
+<p>First, when only you only know the total hardness of the
+<code>water</code> (<code>tot_hard</code>), calcium hardness
+(<code>ca_hard</code>) is assumed to be 65% of the total, which is about
+average for
+<a href="https://www.ars.usda.gov/ARSUserFiles/80400525/Articles/NDBC32_WaterMin.pdf">
+U.S. drinking water</a>. When only <code>ca_hard</code> is provided,
+<code>tot_hard</code> is assumed to be equal to calcium hardness/0.65.
+Magnesium hardness (<code>mg_hard</code>) is then calculated as total
+hardness - calcium hardness.</p>
+<p>Let’s look at this using <code>define_water</code>. We can use
+<code>convert_units</code> to get the output in standard units of
+hardness. By defining only the total hardness, we see that the
+<code>water</code> vector also contains estimates for calcium and
+magnesium.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="co"># Calculate hardness or calcium hardness</span></span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>hard_water <span class="ot">&lt;-</span> <span class="fu">define_water</span>(<span class="dv">8</span>, <span class="dv">20</span>, <span class="dv">100</span>, <span class="at">tot_hard =</span> <span class="dv">150</span>)</span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a></span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a><span class="co"># total hardness in mg/L CaCO3</span></span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a>hard_water<span class="sc">@</span>tot_hard</span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a><span class="co">#&gt; [1] 150</span></span>
+<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a></span>
+<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a><span class="co"># calcium hardness</span></span>
+<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a><span class="fu">convert_units</span>(<span class="at">value =</span> hard_water<span class="sc">@</span>ca, <span class="at">formula =</span> <span class="st">&quot;ca&quot;</span>, <span class="at">startunit =</span> <span class="st">&quot;M&quot;</span>, <span class="at">endunit =</span> <span class="st">&quot;mg/L CaCO3&quot;</span>)</span>
+<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a><span class="co">#&gt; [1] 97.5</span></span>
+<span id="cb11-11"><a href="#cb11-11" tabindex="-1"></a></span>
+<span id="cb11-12"><a href="#cb11-12" tabindex="-1"></a><span class="co"># magnesium hardness</span></span>
+<span id="cb11-13"><a href="#cb11-13" tabindex="-1"></a><span class="fu">convert_units</span>(<span class="at">value =</span> hard_water<span class="sc">@</span>mg, <span class="at">formula =</span> <span class="st">&quot;mg&quot;</span>, <span class="at">startunit =</span> <span class="st">&quot;M&quot;</span>, <span class="at">endunit =</span> <span class="st">&quot;mg/L CaCO3&quot;</span>)</span>
+<span id="cb11-14"><a href="#cb11-14" tabindex="-1"></a><span class="co">#&gt; [1] 52.5</span></span></code></pre></div>
+</div>
+<div id="total-and-dissolved-organic-carbon" class="section level3">
+<h3>Total and dissolved organic carbon</h3>
+<p>TOC and DOC inputs operate similarly to hardness. TOC and DOC are
+important to know for modelling and predicting various water treatment
+processes. If you only know TOC, <code>define_water</code> applies a
+standard conversion to estimate DOC, and vice versa. If only
+<code>toc</code> is provided, <code>doc</code> is assumed to be 95% of
+the TOC. If only <code>doc</code> is provided, <code>toc</code> is
+assumed to be DOC/0.95. This ratio would generally be an acceptable
+estimate for most drinking water scenarios, but the amount of TOC that
+is dissolved in raw waters could vary widely.
+<a href="https://doi.org/10.1016/S0022-1694(00)00292-4">Westerhoff and
+Anning, 2000</a> reported a range of 10-100% dissolved TOC in 25 surface
+waters, so keep in mind that the standard conversion may not be right
+for your context.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="co"># Calculate TOC and DOC</span></span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>toc_water <span class="ot">&lt;-</span> <span class="fu">define_water</span>(<span class="dv">8</span>, <span class="dv">20</span>, <span class="dv">100</span>, <span class="at">toc =</span> <span class="dv">3</span>)</span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>toc_water<span class="sc">@</span>toc <span class="co"># mg/L</span></span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a><span class="co">#&gt; [1] 3</span></span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a>toc_water<span class="sc">@</span>doc <span class="co"># mg/L</span></span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a><span class="co">#&gt; [1] 2.85</span></span>
+<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a></span>
+<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a>doc_water <span class="ot">&lt;-</span> <span class="fu">define_water</span>(<span class="dv">8</span>, <span class="dv">20</span>, <span class="dv">100</span>, <span class="at">doc =</span> <span class="fl">1.3</span>)</span>
+<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a>doc_water<span class="sc">@</span>toc <span class="co"># mg/L</span></span>
+<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a><span class="co">#&gt; [1] 1.368421</span></span>
+<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a>doc_water<span class="sc">@</span>doc <span class="co"># mg/L</span></span>
+<span id="cb12-12"><a href="#cb12-12" tabindex="-1"></a><span class="co">#&gt; [1] 1.3</span></span></code></pre></div>
+<p>Overall, <code>tidywater</code> helps you model scenarios with as
+little information as possible because we often don’t have all the data
+we would like, but the less you have to assume about your water, the
+better. It’s important to understand and list the assumptions you are
+making during any modelling effort.</p>
+<p>Check out our other vignettes to learn more about tidywater’s
+functions for modelling softening, coagulation, DBP formation…. here
+____.</p>
+</div>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

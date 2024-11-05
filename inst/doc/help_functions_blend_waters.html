@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Helper Functions: Blending Multiple Waters</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Helper Functions: Blending Multiple
+Waters</h1>
+
+
+
+<p>This vignette assumes a basic understanding of
+<code>define_water</code> and the S4 <code>water</code> class. See
+<code>vignette(&quot;intro&quot;, package = &quot;tidywater&quot;)</code> for more
+information.</p>
+<div id="blending-analysis-setup" class="section level2">
+<h2>Blending Analysis Setup</h2>
+<p>In this analysis, a hypothetical drinking water utility sources their
+water from a river and a lake, both of which have high hardness. The
+operators are investigating whether blending up to 5 MGD from two
+groundwater wells will reduce the total hardness below 200 mg/L as
+CaCO3.</p>
+</div>
+<div id="define_water_once" class="section level2">
+<h2><code>define_water_once</code></h2>
+<p>First, let’s take a look at the available groundwater data from Well
+A and Well B. Notice the use of <code>define_water_once</code>.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="co"># Example of how to use a tidywater &quot;_once&quot; function to define multiple waters in a single data frame</span></span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>data <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>  <span class="at">Well =</span> <span class="fu">c</span>(<span class="st">&quot;A&quot;</span>, <span class="st">&quot;B&quot;</span>),</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>  <span class="at">ph =</span> <span class="fu">c</span>(<span class="dv">8</span>, <span class="dv">9</span>),</span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a>  <span class="at">alk =</span> <span class="fu">c</span>(<span class="dv">100</span>, <span class="dv">150</span>),</span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a>  <span class="at">temp =</span> <span class="fu">c</span>(<span class="dv">18</span>, <span class="dv">19</span>),</span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a>  <span class="at">ca =</span> <span class="fu">c</span>(<span class="dv">5</span>, <span class="dv">10</span>),</span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a>  <span class="at">cond =</span> <span class="fu">c</span>(<span class="dv">500</span>, <span class="dv">900</span>),</span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a>  <span class="at">tds =</span> <span class="fu">c</span>(<span class="dv">300</span>, <span class="dv">500</span>),</span>
+<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a>  <span class="at">na =</span> <span class="fu">c</span>(<span class="dv">100</span>, <span class="dv">200</span>),</span>
+<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a>  <span class="at">k =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">20</span>),</span>
+<span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a>  <span class="at">cl =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">30</span>),</span>
+<span id="cb1-13"><a href="#cb1-13" tabindex="-1"></a>  <span class="at">so4 =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>)</span>
+<span id="cb1-14"><a href="#cb1-14" tabindex="-1"></a>) <span class="sc">%&gt;%</span></span>
+<span id="cb1-15"><a href="#cb1-15" tabindex="-1"></a>  <span class="fu">define_water_once</span>()</span>
+<span id="cb1-16"><a href="#cb1-16" tabindex="-1"></a></span>
+<span id="cb1-17"><a href="#cb1-17" tabindex="-1"></a>data</span>
+<span id="cb1-18"><a href="#cb1-18" tabindex="-1"></a><span class="sc">&gt;</span><span class="co">#   Well ph temp alk tds   cond tot_hard           kw      alk_eq          na</span></span>
+<span id="cb1-19"><a href="#cb1-19" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 1    A  8   18 100 300 468.75 19.21002 6.309573e-15 0.001998264 0.004349761</span></span>
+<span id="cb1-20"><a href="#cb1-20" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 2    B  9   19 150 500 781.25 38.42004 6.309573e-15 0.002997395 0.008699522</span></span>
+<span id="cb1-21"><a href="#cb1-21" tabindex="-1"></a><span class="er">&gt;</span><span class="co">#             ca           mg            k           cl so4        hco3</span></span>
+<span id="cb1-22"><a href="#cb1-22" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 1 0.0001247567 0.0000671767 0.0000000000 0.0000000000   0 0.001974750</span></span>
+<span id="cb1-23"><a href="#cb1-23" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 2 0.0002495134 0.0001343534 0.0005115312 0.0008461907   0 0.002647881</span></span>
+<span id="cb1-24"><a href="#cb1-24" tabindex="-1"></a><span class="er">&gt;</span><span class="co">#            co3 h2po4 hpo4 po4 ocl     h           oh tot_po4 tot_ocl tot_nh3</span></span>
+<span id="cb1-25"><a href="#cb1-25" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 1 1.144647e-05     0    0   0   0 1e-08 6.309573e-07       0       0       0</span></span>
+<span id="cb1-26"><a href="#cb1-26" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 2 1.716027e-04     0    0   0   0 1e-09 6.309573e-06       0       0       0</span></span>
+<span id="cb1-27"><a href="#cb1-27" tabindex="-1"></a><span class="er">&gt;</span><span class="co">#       tot_co3     is nh4 applied_treatment        estimated</span></span>
+<span id="cb1-28"><a href="#cb1-28" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 1 0.002026005 0.0075   0           defined _tothard_mg_cond</span></span>
+<span id="cb1-29"><a href="#cb1-29" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 2 0.002824530 0.0125   0           defined _tothard_mg_cond</span></span></code></pre></div>
+<p><code>define_water_once</code> is the first helper function we’ll
+cover. This function does exactly what <code>define_water</code> does,
+but applies it to a data frame input. This means once your data has the
+proper column names, <code>define_water_once</code> can add the
+parameters to each <code>water</code> slot, calculate the carbonate
+balance (and other relevant calculations), and outputs all parameters in
+the <code>water</code> class as a data frame. Any function with the
+<code>_once</code> suffix in tidywater can be used in a piped code
+block. However, tidywater functions cannot be used directly downstream
+of these types of functions because the data is no longer in a
+<code>water</code> class format.</p>
+</div>
+<div id="define_water_chain" class="section level2">
+<h2><code>define_water_chain</code></h2>
+<p>So what if you want to chain more tidywater functions together? In
+that case, you can use <code>define_water_chain</code>. This function
+takes a dataframe input, then outputs all parameters in a
+<code>water</code> class column. This is true for all tidywater
+functions with the <code>_chain</code> suffix. <code>_chain</code>
+functions are handy in a piped code block where you’ll need to use many
+tidywater functions, such as <code>chemdose_ph</code>,
+<code>solvedose_alk</code>, etc. Most tidywater functions have a
+<code>_chain</code> or <code>_once</code> option.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="co"># Read in data from Wells A and B</span></span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>raw_wells_water <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>  <span class="at">Well =</span> <span class="fu">c</span>(<span class="st">&quot;A&quot;</span>, <span class="st">&quot;B&quot;</span>),</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>  <span class="at">ph =</span> <span class="fu">c</span>(<span class="dv">8</span>, <span class="dv">9</span>),</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>  <span class="at">alk =</span> <span class="fu">c</span>(<span class="dv">100</span>, <span class="dv">150</span>),</span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>  <span class="at">temp =</span> <span class="fu">c</span>(<span class="dv">18</span>, <span class="dv">19</span>),</span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>  <span class="at">ca =</span> <span class="fu">c</span>(<span class="dv">5</span>, <span class="dv">10</span>),</span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>  <span class="at">cond =</span> <span class="fu">c</span>(<span class="dv">500</span>, <span class="dv">900</span>),</span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>  <span class="at">tds =</span> <span class="fu">c</span>(<span class="dv">300</span>, <span class="dv">500</span>),</span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a>  <span class="at">na =</span> <span class="fu">c</span>(<span class="dv">100</span>, <span class="dv">200</span>),</span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a>  <span class="at">k =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">20</span>),</span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a>  <span class="at">cl =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">30</span>),</span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a>  <span class="at">so4 =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>)</span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a>) <span class="sc">%&gt;%</span></span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a>  <span class="fu">define_water_chain</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a>  <span class="fu">balance_ions_chain</span>()</span>
+<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a></span>
+<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a>raw_wells_water</span>
+<span id="cb2-19"><a href="#cb2-19" tabindex="-1"></a><span class="sc">&gt;</span><span class="co">#                                            defined_water Well</span></span>
+<span id="cb2-20"><a href="#cb2-20" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 1 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 63 slots&gt;    A</span></span>
+<span id="cb2-21"><a href="#cb2-21" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 2 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 63 slots&gt;    B</span></span>
+<span id="cb2-22"><a href="#cb2-22" tabindex="-1"></a><span class="er">&gt;</span><span class="co">#                                           balanced_water</span></span>
+<span id="cb2-23"><a href="#cb2-23" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 1 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 63 slots&gt;</span></span>
+<span id="cb2-24"><a href="#cb2-24" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 2 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 63 slots&gt;</span></span></code></pre></div>
+<p>It’s always a good idea to verify our code is working properly. To
+make sure that our data was balanced using
+<code>balance_ions_chain</code>, we can plot our <code>water</code>
+class using <code>plot_ions</code>. The below example shows how to index
+a <code>water</code> class column:
+dataframe$water_class_column[[row_number]]</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co"># Ion plot before balance_ions_chain was applied</span></span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>raw_wells_water<span class="sc">$</span>defined_water[[<span class="dv">1</span>]] <span class="sc">%&gt;%</span></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>  <span class="fu">plot_ions</span>()</span></code></pre></div>
+<p><img role="img" src="data:image/png;base64,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" /><!-- --></p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="co"># Plot of balanced ions</span></span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>raw_wells_water<span class="sc">$</span>balanced_water[[<span class="dv">1</span>]] <span class="sc">%&gt;%</span></span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>  <span class="fu">plot_ions</span>()</span></code></pre></div>
+<p><img role="img" src="data:image/png;base64,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" /><!-- --></p>
+<p>Let’s continue with our blending analysis. We’re going to treat our
+two wells as a single groundwater source. Blending can be calculated as
+Well_A_ratio * Well_A concentration + Well_B_ratio *
+Well_B_concentration. This is fine for most parameters, but for pH and
+acid/base equilibrium species, blending is a little more complicated.
+Enter: <code>blend_waters</code>. This function blends waters as you’d
+expect, and does all the pH blending math for you. In the example below,
+we’re going to be blending inefficiently. But don’t worry, there will be
+a better blending example later.</p>
+</div>
+<div id="blend_waters" class="section level2">
+<h2><code>blend_waters</code></h2>
+<p>To blend our two wells, we will blend row 1 of
+<code>balanced_water</code> with row 2 of <code>balanced_water</code>.
+This “vertical” blending is not efficient and will not be useful for
+large data frames. <code>water</code> objects cannot be pivoted, hence
+the row-to-row blending. In later examples, we will actually blend
+columns, which is more amenable to piped code chunks.</p>
+<p>The <code>balanced_water</code> function takes 2 or more waters (must
+be of the <code>water</code> class), and corresponding ratios for each
+water.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="co"># Blend &quot;vertically&quot;: blends the data in well A&#39;s row with that of well B&#39;s.</span></span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="co"># The pluck function from the purrr package is useful for indexing a water class column</span></span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="do">### First, index the water column using the name or number of the column (ie &quot;balanced_water&quot; or 3 (column number))</span></span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="do">### Next, index the row</span></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a>blended_wells_water <span class="ot">&lt;-</span> <span class="fu">blend_waters</span>(</span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a>  <span class="at">waters =</span> <span class="fu">c</span>(</span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a>    <span class="fu">pluck</span>(raw_wells_water, <span class="st">&quot;balanced_water&quot;</span>, <span class="dv">1</span>),</span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a>    <span class="fu">pluck</span>(raw_wells_water, <span class="dv">3</span>, <span class="dv">2</span>)</span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a>  ),</span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a>  <span class="at">ratios =</span> <span class="fu">c</span>(.<span class="dv">5</span>, .<span class="dv">5</span>)</span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a>)</span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a><span class="co"># outputs a water class object.</span></span>
+<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a>blended_wells_water</span>
+<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a><span class="sc">&gt;</span><span class="co"># pH (unitless):  8.73 </span></span>
+<span id="cb5-16"><a href="#cb5-16" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># Temperature (deg C):  18.5 </span></span>
+<span id="cb5-17"><a href="#cb5-17" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># Alkalinity (mg/L CaCO3):  125 </span></span>
+<span id="cb5-18"><a href="#cb5-18" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># Use summary functions or slot names to view other parameters.</span></span></code></pre></div>
+<p>We will create a data frame of the blend scenarios we will be
+modeling, in this case, we are varying flow rates from the different
+sources.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="co"># Assume wells can contribute 2.5 MGD each</span></span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>groundwater <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">Wells_flow =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="fl">2.5</span>, <span class="dv">5</span>))</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="co"># Blending scenarios and the resulting source water ratios</span></span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>scenarios <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a>  <span class="at">surface_flow =</span> <span class="fu">seq</span>(<span class="dv">1</span>, <span class="dv">20</span>, <span class="dv">1</span>),</span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a>  <span class="at">River_flow =</span> <span class="fu">c</span>(<span class="fu">seq</span>(<span class="dv">1</span>, <span class="dv">10</span>, <span class="dv">1</span>), <span class="fu">rep</span>(<span class="dv">10</span>, <span class="dv">10</span>)),</span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a>  <span class="at">Lake_flow =</span> <span class="fu">c</span>(<span class="fu">rep</span>(<span class="dv">0</span>, <span class="dv">10</span>), <span class="fu">seq</span>(<span class="dv">1</span>, <span class="dv">10</span>, <span class="dv">1</span>)),</span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a>  <span class="at">group =</span> <span class="fu">seq</span>(<span class="dv">1</span>, <span class="dv">20</span>, <span class="dv">1</span>)</span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a>) <span class="sc">%&gt;%</span></span>
+<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a>  <span class="fu">cross_join</span>(groundwater) <span class="sc">%&gt;%</span></span>
+<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a>    <span class="at">total_flow =</span> River_flow <span class="sc">+</span> Lake_flow <span class="sc">+</span> Wells_flow,</span>
+<span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a>    <span class="at">River_ratio =</span> River_flow <span class="sc">/</span> total_flow,</span>
+<span id="cb6-14"><a href="#cb6-14" tabindex="-1"></a>    <span class="at">Lake_ratio =</span> Lake_flow <span class="sc">/</span> total_flow,</span>
+<span id="cb6-15"><a href="#cb6-15" tabindex="-1"></a>    <span class="at">Wells_ratio =</span> Wells_flow <span class="sc">/</span> total_flow</span>
+<span id="cb6-16"><a href="#cb6-16" tabindex="-1"></a>  )</span></code></pre></div>
+<p>To finish blending our wells, we will transform the
+<code>blended_wells</code> <code>water</code> object into a data frame
+containing a <code>water</code> column. The river and lake sources don’t
+require any mixing. We’ll set up their raw data and balance the ions
+using <code>define_water_chain</code> to make a data frame with a
+<code>water</code> column. In <code>balance_ions_chain</code>, we are
+specifying the name of the output columns so we can use the different
+water sources later. Most of tidywater’s <code>_chain</code> functions
+have the option to name the output column. Defaults vary depending on
+the <code>_chain</code> function.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>Wells_water <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">wells =</span> <span class="fu">c</span>(blended_wells_water))</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>River_water <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>  <span class="at">ph =</span> <span class="dv">7</span>, <span class="at">temp =</span> <span class="dv">20</span>, <span class="at">alk =</span> <span class="dv">200</span>, <span class="at">tds =</span> <span class="dv">950</span>, <span class="at">cond =</span> <span class="dv">1400</span>,</span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>  <span class="at">tot_hard =</span> <span class="dv">300</span>, <span class="at">na =</span> <span class="dv">100</span>, <span class="at">cl =</span> <span class="dv">150</span>, <span class="at">so4 =</span> <span class="dv">200</span></span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a>) <span class="sc">%&gt;%</span></span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a>  <span class="fu">define_water_chain</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a>  <span class="fu">balance_ions_chain</span>(<span class="at">output_water =</span> <span class="st">&quot;river&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>defined_water)</span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a></span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a>Lake_water <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a>  <span class="at">ph =</span> <span class="fl">7.5</span>, <span class="at">temp =</span> <span class="dv">19</span>, <span class="at">alk =</span> <span class="dv">180</span>, <span class="at">tds =</span> <span class="dv">900</span>, <span class="at">cond =</span> <span class="dv">1000</span>,</span>
+<span id="cb7-13"><a href="#cb7-13" tabindex="-1"></a>  <span class="at">tot_hard =</span> <span class="dv">350</span>, <span class="at">ca_hard =</span> <span class="dv">250</span>, <span class="at">na =</span> <span class="dv">100</span>, <span class="at">cl =</span> <span class="dv">100</span>, <span class="at">so4 =</span> <span class="dv">150</span></span>
+<span id="cb7-14"><a href="#cb7-14" tabindex="-1"></a>) <span class="sc">%&gt;%</span></span>
+<span id="cb7-15"><a href="#cb7-15" tabindex="-1"></a>  <span class="fu">define_water_chain</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb7-16"><a href="#cb7-16" tabindex="-1"></a>  <span class="fu">balance_ions_chain</span>(<span class="at">output_water =</span> <span class="st">&quot;lake&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb7-17"><a href="#cb7-17" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>defined_water)</span></code></pre></div>
+</div>
+<div id="blend_waters_chain" class="section level2">
+<h2><code>blend_waters_chain</code></h2>
+<p>Now that we have our 3 sources defined, balanced, and cleaned up, we
+can blend them. This next code chunk showcases the power of tidywater.
+We’ll use <code>blend_waters_chain</code>, the helper function for
+<code>blend_waters</code>. We already created <code>water</code> class
+columns above, so we’ll use those column names in the
+<code>waters</code> argument. The ratios for each water source were
+calculated in the <code>scenarios</code> data frame. We’ll pass the
+names of those ratio columns into the <code>ratio</code> argument. The
+ratios must always add up to 1, otherwise the function will not run.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>blend_water <span class="ot">&lt;-</span> scenarios <span class="sc">%&gt;%</span></span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>  <span class="fu">cross_join</span>(Wells_water) <span class="sc">%&gt;%</span></span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>  <span class="fu">cross_join</span>(River_water) <span class="sc">%&gt;%</span></span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>  <span class="fu">cross_join</span>(Lake_water) <span class="sc">%&gt;%</span></span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>  <span class="fu">blend_waters_chain</span>(</span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a>    <span class="at">waters =</span> <span class="fu">c</span>(<span class="st">&quot;wells&quot;</span>, <span class="st">&quot;river&quot;</span>, <span class="st">&quot;lake&quot;</span>),</span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a>    <span class="at">ratios =</span> <span class="fu">c</span>(<span class="st">&quot;Wells_ratio&quot;</span>, <span class="st">&quot;River_ratio&quot;</span>, <span class="st">&quot;Lake_ratio&quot;</span>)</span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a>  )</span></code></pre></div>
+</div>
+<div id="pluck_water" class="section level2">
+<h2><code>pluck_water</code></h2>
+<p>With all three source waters blended for each tested scenario, we can
+pull out a parameter of interest. In this case, we’re investigating how
+much we can dilute the total hardness. This brings us to our final
+helper function for this vignette: <code>pluck_water</code>. This
+function uses <code>purrr::pluck</code> to create a new column for one
+selected parameter from a <code>water</code> class object. You can
+choose which <code>water</code> column to pluck from using the
+<code>input_water</code> argument. Next, select the parameter of
+interest (which must match the water slot’s name). Finally, the output
+column’s name will default to the name of the plucked parameter, but
+there is an option to name it yourself using the
+<code>output_column</code> argument. If you want to view all the
+parameters as separate columns, it is better to use a <code>_once</code>
+function instead of <code>_chain</code> (i.e., we could have used
+<code>blend_water_once</code> above).</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>plotting_data <span class="ot">&lt;-</span> blend_water <span class="sc">%&gt;%</span></span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>  <span class="fu">pluck_water</span>(<span class="at">input_water =</span> <span class="st">&quot;blended_water&quot;</span>, <span class="st">&quot;tot_hard&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>  <span class="co"># Flag scenarios for plotting</span></span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Flagged =</span> <span class="fu">case_when</span>(blended_water_tot_hard <span class="sc">&gt;</span> <span class="dv">200</span> <span class="sc">~</span> <span class="st">&quot;FLAG: Hardness &gt; 200 mg/L CaCO3&quot;</span>, <span class="cn">TRUE</span> <span class="sc">~</span> <span class="st">&quot;Not Flagged&quot;</span>))</span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a></span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a><span class="co"># Plot the results!</span></span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a><span class="fu">ggplot</span>(plotting_data, <span class="fu">aes</span>(<span class="at">x =</span> total_flow, <span class="at">y =</span> blended_water_tot_hard, <span class="at">color =</span> <span class="fu">as.character</span>(Wells_flow), <span class="at">shape =</span> Flagged)) <span class="sc">+</span></span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span></span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a>  <span class="fu">scale_shape_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="dv">4</span>, <span class="dv">16</span>)) <span class="sc">+</span></span>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">&quot;Hardness (mg/L as CaCO3)&quot;</span>, <span class="at">color =</span> <span class="st">&quot;Contributions from new wells (MGD)&quot;</span>,</span>
+<span id="cb9-12"><a href="#cb9-12" tabindex="-1"></a>    <span class="at">shape =</span> <span class="st">&quot;Scenario Flags&quot;</span>, <span class="at">x =</span> <span class="st">&quot;Total Plant Flow (MGD)&quot;</span></span>
+<span id="cb9-13"><a href="#cb9-13" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb9-14"><a href="#cb9-14" tabindex="-1"></a>  <span class="fu">theme_bw</span>() <span class="sc">+</span></span>
+<span id="cb9-15"><a href="#cb9-15" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
+<span id="cb9-16"><a href="#cb9-16" tabindex="-1"></a>    <span class="at">legend.position =</span> <span class="st">&quot;bottom&quot;</span>,</span>
+<span id="cb9-17"><a href="#cb9-17" tabindex="-1"></a>    <span class="at">legend.box =</span> <span class="st">&quot;vertical&quot;</span>,</span>
+<span id="cb9-18"><a href="#cb9-18" tabindex="-1"></a>    <span class="at">legend.margin =</span> <span class="fu">margin</span>(<span class="sc">-</span><span class="dv">5</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>)</span>
+<span id="cb9-19"><a href="#cb9-19" tabindex="-1"></a>  )</span></code></pre></div>
+<p><img role="img" src="data:image/png;base64,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" /><!-- --></p>
+</div>
+<div id="speed-it-up" class="section level2">
+<h2>Speed it up</h2>
+<p>As you use more tidywater helper functions with larger data sets,
+you’ll notice the code can take a few minutes to run. All helper
+functions use functions from the
+<a href="https://furrr.futureverse.org/"> furrr package</a>. To reduce
+processing time, you can activate <code>furrr</code>’s parallel
+processing power by using <code>plan()</code> at the beginning of your
+script. <code>plan()</code> depends on what type of operating system you
+have, more info on that in the
+<a href="https://furrr.futureverse.org/"> Controlling How Futures are
+Resolved</a> table.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="co"># For most operating systems, especially Windows, use this at the beginning of your script</span></span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="co"># We recommend revmoving the `workers` argument to use your computer&#39;s full power.</span></span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="fu">plan</span>(multisession, <span class="at">workers =</span> <span class="dv">2</span>)</span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a></span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="co"># rest of script</span></span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a></span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a><span class="co"># At the end of the script, here&#39;s an option to explicitly close the multisession processing</span></span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a><span class="fu">plan</span>(sequential)</span></code></pre></div>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
