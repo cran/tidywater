@@ -1,13 +1,14 @@
 Package: tidywater
 Type: Package
 Title: Water Quality Models for Drinking Water Treatment Processes
-Version: 0.6.2
+Version: 0.7.0
 Authors@R: c(person("Sierra", "Johnson", email = "sjohnson2@brwncald.com", role = c("aut", "cre")),
     person("Libby", "McKenna", email = "lmckenna@brwncald.com", role = c("aut")),
     person("Riley", "Mulhern", email = "rmulhern@brwncald.com", role = c("aut"), comment = c(ORCID = "0000-0001-6293-3672")),
     person("Chris", "Corwin", email = "ccorwin@brwncald.com", role = "aut", comment = c(ORCID = "0000-0002-9462-0352")),
     person("Rachel", "Merrifield", role = "ctb"),
     person("Mayuri", "Namasivayam", role = "ctb"),
+    person("Phoebe", "Chen", role = "ctb"),
     person("USEPA", role = "cph", comment = "Copyright holder of included TELSS fragments (dissolve_pb function)"),
     person("Brown and Caldwell", role = c("fnd", "cph")
     ))
@@ -29,18 +30,19 @@ Depends: R (>= 2.10)
 Suggests: rmarkdown, testthat (>= 3.0.0)
 Config/testthat/edition: 3
 VignetteBuilder: knitr
-Date: 2024-11-01
+Date: 2025-01-22
 NeedsCompilation: no
-Packaged: 2024-11-01 16:31:08 UTC; SJohnson2
+Packaged: 2025-01-22 23:09:09 UTC; SJohnson2
 Author: Sierra Johnson [aut, cre],
   Libby McKenna [aut],
   Riley Mulhern [aut] (<https://orcid.org/0000-0001-6293-3672>),
   Chris Corwin [aut] (<https://orcid.org/0000-0002-9462-0352>),
   Rachel Merrifield [ctb],
   Mayuri Namasivayam [ctb],
+  Phoebe Chen [ctb],
   USEPA [cph] (Copyright holder of included TELSS fragments (dissolve_pb
     function)),
   Brown and Caldwell [fnd, cph]
 Maintainer: Sierra Johnson <sjohnson2@brwncald.com>
 Repository: CRAN
-Date/Publication: 2024-11-05 07:50:02 UTC
+Date/Publication: 2025-01-22 23:40:02 UTC

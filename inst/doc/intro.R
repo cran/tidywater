@@ -14,8 +14,10 @@ empty_water <- define_water()
 print(empty_water)
 
 ## ----warning=FALSE------------------------------------------------------------
-my_water <- define_water(ph = 7.5, alk = 100, temp = 20, na = 5)
+my_water <- define_water(ph = 7.5, alk = 100, temp = 20, na = 50, ca = 50)
 my_water
+my_water@na
+my_water@hco3
 
 ## -----------------------------------------------------------------------------
 summarize_wq(my_water)
@@ -28,18 +30,27 @@ balanced_water <- my_water %>% balance_ions()
 plot_ions(balanced_water)
 
 ## -----------------------------------------------------------------------------
-my_water@k # We did not input any potassium in the original water
+my_water@cl # We did not input any chloride in the original water
 
-balanced_water@k # The balanced water now contains 0.00178 M of potassium
+balanced_water@cl # The balanced water now contains chloride
 
 ## -----------------------------------------------------------------------------
-convert_units(value = balanced_water@k, formula = "k", startunit = "M", endunit = "mg/L")
+convert_units(value = balanced_water@cl, formula = "cl", startunit = "M", endunit = "mg/L")
 
 ## -----------------------------------------------------------------------------
 # The ionic strength slot was NA in the original water because we did not
 # provide enough information to calculate it
 my_water@is
-balanced_water@is # Now the ionic strength is 0.002 M
+
+# Input TDS or conductivity
+new_water1 <- define_water(ph = 7.5, alk = 100, temp = 20, na = 50, ca = 50, tds = 100)
+new_water2 <- define_water(ph = 7.5, alk = 100, temp = 20, na = 50, ca = 50, cond = 200)
+# Input more known ions
+new_water3 <- define_water(ph = 7.5, alk = 100, temp = 20, na = 50, ca = 50, so4 = 100)
+
+new_water1@is
+new_water2@is
+new_water3@is
 
 ## ----warning=FALSE------------------------------------------------------------
 # Calculate hardness or calcium hardness
