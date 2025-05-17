@@ -33,79 +33,46 @@ alum_20 # Caustic dose required to raise pH to 8 when 20 mg/L of alum is added
 ## ----warning=FALSE------------------------------------------------------------
 # Set a range of alum doses
 
-alum_doses <- tibble(alum = seq(10, 100, 10))
+alum_doses <- tibble(alum_dose = seq(20, 60, 10))
 
 # Use tidywater's built-in synthetic data, water_df, for this example
 raw_water <- water_df %>%
-  define_water_chain() %>%
-  balance_ions_chain() %>%
+  slice_head(n = 2) %>%
+  define_water_chain("raw") %>%
   # Join alum doses to create several dosing scenarios.
   cross_join(alum_doses)
 
 ## ----warning=FALSE------------------------------------------------------------
-# 1. Use an existing column in your data frame to dose a chemical.
-#    Here, we use the alum column as the dosed chemical.
-dose_column_water <- raw_water %>%
-  chemdose_ph_chain(input_water = "balanced_water") %>% # The function recognizes the 'alum' column as the chemical dose
-  pluck_water(input_water = "dosed_chem_water", parameter = "ph") %>%
-  select(-c(defined_water, balanced_water))
+dose_water <- raw_water %>%
+  mutate(hcl = 10) %>%
+  chemdose_ph_chain(input_water = "raw", alum = alum_dose) %>%
+  pluck_water(input_water = c("raw", "dosed_chem_water"), parameter = "ph") %>%
+  select(-c(raw, dosed_chem_water))
 
-head(dose_column_water)
+head(dose_water)
 
-# 2. Dose a chemical in the function. Rename the alum column so it doesn't get used in the function
-dose_argument_water <- raw_water %>%
-  rename(coagulant = alum) %>%
-  chemdose_ph_chain(input_water = "balanced_water", alum = 30) %>%
-  pluck_water(input_water = "dosed_chem_water", parameter = "ph") %>%
-  select(-c(defined_water, balanced_water))
+dose_water <- raw_water %>%
+  chemdose_ph_chain(input_water = "raw", alum = alum_dose, hcl = 5) %>%
+  pluck_water(input_water = c("raw", "dosed_chem_water"), parameter = "ph") %>%
+  select(-c(raw, dosed_chem_water))
 
-head(dose_argument_water)
+head(dose_water)
 
 ## ----warning=FALSE------------------------------------------------------------
-# 1. Use existing columns in your dataframe to set a target pH and the chemicals to dose
-raise_ph <- tibble(
-  chemical = c("naoh", "mgoh2"),
-  target_ph = c(8, 8)
-)
-solve_column <- raw_water %>%
-  chemdose_ph_chain(input_water = "balanced_water") %>%
-  cross_join(raise_ph) %>%
-  solvedose_ph_once(input_water = "dosed_chem_water") %>%
-  select(-c(defined_water:dosed_chem_water))
+solve_ph <- raw_water %>%
+  chemdose_ph_chain("raw", alum = alum_dose) %>%
+  mutate(target_ph = 8) %>%
+  solvedose_ph_once(input_water = "dosed_chem_water", chemical = c("naoh", "mgoh2")) %>%
+  select(-c(raw, dosed_chem_water))
 
-head(solve_column)
-
-# 2. Set the target pH and chemical needed to raise the pH inside the function
-solve_argument <- raw_water %>%
-  chemdose_ph_chain(input_water = "balanced_water") %>%
-  solvedose_ph_once(input_water = "dosed_chem_water", chemical = "naoh", target_ph = 8) %>%
-  select(-c(defined_water:dosed_chem_water))
-
-head(solve_argument)
+head(solve_ph)
 
 ## ----warning=FALSE------------------------------------------------------------
 dosed_caustic_water <- raw_water %>%
-  chemdose_ph_chain(input_water = "balanced_water", output_water = "alum_dosed") %>%
+  chemdose_ph_chain(input_water = "raw", output_water = "alum_dosed", alum = alum_dose) %>%
   solvedose_ph_once(input_water = "alum_dosed", chemical = "naoh", target_ph = 8) %>%
-  rename(
-    naoh = dose_required,
-    coagulant = alum
-  ) %>% # rename alum column so it doesn't get dosed twice
-  chemdose_ph_chain(input_water = "alum_dosed", output_water = "caustic_dosed") %>%
-  pluck_water(input_water = "caustic_dosed", "ph") %>%
-  select(-c(defined_water:chemical))
+  chemdose_ph_chain(input_water = "alum_dosed", output_water = "caustic_dosed", naoh = dose_required) %>%
+  pluck_water(input_water = "caustic_dosed", "ph")
 
 head(dosed_caustic_water)
-
-## ----warning=FALSE------------------------------------------------------------
-enhanced_coag_water <- raw_water %>%
-  mutate(alum = 30) %>%
-  chemdose_ph_chain(input_water = "balanced_water", output_water = "alum_dosed", hcl = 10) %>%
-  pluck_water("alum_dosed", "ph") %>%
-  solvedose_ph_once(input_water = "alum_dosed", target_ph = 8, chemical = "naoh", output_column = "naoh") %>%
-  select(-c(alum, hcl)) %>% # remove chemical columns so they don't get dosed again in the next line.
-  chemdose_ph_chain(input_water = "alum_dosed", output_water = "ph_adjusted") %>%
-  select(-c(defined_water:alum_dosed, target_ph, chemical))
-
-head(enhanced_coag_water)
 

@@ -11,25 +11,6 @@ library(furrr)
 library(purrr)
 # plan(multisession)
 
-## ----setup, warning=FALSE-----------------------------------------------------
-# Example of how to use a tidywater "_once" function to define multiple waters in a single data frame
-data <- tibble(
-  Well = c("A", "B"),
-  ph = c(8, 9),
-  alk = c(100, 150),
-  temp = c(18, 19),
-  ca = c(5, 10),
-  cond = c(500, 900),
-  tds = c(300, 500),
-  na = c(100, 200),
-  k = c(0, 20),
-  cl = c(0, 30),
-  so4 = c(0, 0)
-) %>%
-  define_water_once()
-
-data
-
 ## ----warning=FALSE, echo=TRUE-------------------------------------------------
 # Read in data from Wells A and B
 raw_wells_water <- tibble(
@@ -79,11 +60,11 @@ blended_wells_water
 groundwater <- tibble(Wells_flow = c(0, 2.5, 5))
 # Blending scenarios and the resulting source water ratios
 scenarios <- tibble(
-  surface_flow = seq(1, 20, 1),
-  River_flow = c(seq(1, 10, 1), rep(10, 10)),
-  Lake_flow = c(rep(0, 10), seq(1, 10, 1)),
-  group = seq(1, 20, 1)
+  surface_flow = seq(2, 20, 2),
+  River_flow = c(seq(2, 10, 2), rep(10, 5)),
+  Lake_flow = c(rep(0, 5), seq(2, 10, 2)),
 ) %>%
+  mutate(group = row_number()) %>%
   cross_join(groundwater) %>%
   mutate(
     total_flow = River_flow + Lake_flow + Wells_flow,
@@ -123,28 +104,19 @@ blend_water <- scenarios %>%
 
 ## ----fig.width= 7-------------------------------------------------------------
 plotting_data <- blend_water %>%
-  pluck_water(input_water = "blended_water", "tot_hard") %>%
-  # Flag scenarios for plotting
-  mutate(Flagged = case_when(blended_water_tot_hard > 200 ~ "FLAG: Hardness > 200 mg/L CaCO3", TRUE ~ "Not Flagged"))
+  pluck_water(input_water = "blended_water", "tot_hard")
 
 # Plot the results!
-ggplot(plotting_data, aes(x = total_flow, y = blended_water_tot_hard, color = as.character(Wells_flow), shape = Flagged)) +
+ggplot(plotting_data, aes(x = total_flow, y = blended_water_tot_hard, color = as.character(Wells_flow))) +
   geom_point() +
-  scale_shape_manual(values = c(4, 16)) +
   labs(
-    y = "Hardness (mg/L as CaCO3)", color = "Contributions from new wells (MGD)",
-    shape = "Scenario Flags", x = "Total Plant Flow (MGD)"
-  ) +
-  theme_bw() +
-  theme(
-    legend.position = "bottom",
-    legend.box = "vertical",
-    legend.margin = margin(-5, 0, 0, 0)
+    y = "Hardness (mg/L as CaCO3)", color = "Well Flow (MGD)",
+    x = "Total Plant Flow (MGD)"
   )
 
 ## ----warning=FALSE------------------------------------------------------------
 # For most operating systems, especially Windows, use this at the beginning of your script
-# We recommend revmoving the `workers` argument to use your computer's full power.
+# We recommend removing the `workers` argument to use your computer's full power.
 plan(multisession, workers = 2)
 
 # rest of script

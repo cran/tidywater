@@ -391,12 +391,12 @@ functions, please see the
 how they affect each water quality scenario.</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="co"># Set a range of alum doses</span></span>
 <span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a></span>
-<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>alum_doses <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">alum =</span> <span class="fu">seq</span>(<span class="dv">10</span>, <span class="dv">100</span>, <span class="dv">10</span>))</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>alum_doses <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">alum_dose =</span> <span class="fu">seq</span>(<span class="dv">20</span>, <span class="dv">60</span>, <span class="dv">10</span>))</span>
 <span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a></span>
 <span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co"># Use tidywater&#39;s built-in synthetic data, water_df, for this example</span></span>
 <span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>raw_water <span class="ot">&lt;-</span> water_df <span class="sc">%&gt;%</span></span>
-<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>  <span class="fu">define_water_chain</span>() <span class="sc">%&gt;%</span></span>
-<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>  <span class="fu">balance_ions_chain</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>  <span class="fu">slice_head</span>(<span class="at">n =</span> <span class="dv">2</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>  <span class="fu">define_water_chain</span>(<span class="st">&quot;raw&quot;</span>) <span class="sc">%&gt;%</span></span>
 <span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>  <span class="co"># Join alum doses to create several dosing scenarios.</span></span>
 <span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a>  <span class="fu">cross_join</span>(alum_doses)</span></code></pre></div>
 </div>
@@ -417,57 +417,36 @@ formula, all lowercase and no special characters.</p>
 or</p></li>
 <li><p>You can specify the chemical in the function.</p></li>
 </ol>
-<p>Let’s look at both options.</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co"># 1. Use an existing column in your data frame to dose a chemical.</span></span>
-<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="co">#    Here, we use the alum column as the dosed chemical.</span></span>
-<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>dose_column_water <span class="ot">&lt;-</span> raw_water <span class="sc">%&gt;%</span></span>
-<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>  <span class="fu">chemdose_ph_chain</span>(<span class="at">input_water =</span> <span class="st">&quot;balanced_water&quot;</span>) <span class="sc">%&gt;%</span> <span class="co"># The function recognizes the &#39;alum&#39; column as the chemical dose</span></span>
-<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>  <span class="fu">pluck_water</span>(<span class="at">input_water =</span> <span class="st">&quot;dosed_chem_water&quot;</span>, <span class="at">parameter =</span> <span class="st">&quot;ph&quot;</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="fu">c</span>(defined_water, balanced_water))</span>
-<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a></span>
-<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="fu">head</span>(dose_column_water)</span>
-<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="sc">&gt;</span><span class="co">#                                         dosed_chem_water alum</span></span>
-<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 1 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt;   10</span></span>
-<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 2 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt;   20</span></span>
-<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 3 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt;   30</span></span>
-<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 4 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt;   40</span></span>
-<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 5 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt;   50</span></span>
-<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 6 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt;   60</span></span>
-<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a><span class="er">&gt;</span><span class="co">#   dosed_chem_water_ph</span></span>
-<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 1                7.17</span></span>
-<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 2                6.86</span></span>
-<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 3                6.64</span></span>
-<span id="cb3-20"><a href="#cb3-20" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 4                6.45</span></span>
-<span id="cb3-21"><a href="#cb3-21" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 5                6.28</span></span>
-<span id="cb3-22"><a href="#cb3-22" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 6                6.10</span></span>
-<span id="cb3-23"><a href="#cb3-23" tabindex="-1"></a></span>
-<span id="cb3-24"><a href="#cb3-24" tabindex="-1"></a><span class="co"># 2. Dose a chemical in the function. Rename the alum column so it doesn&#39;t get used in the function</span></span>
-<span id="cb3-25"><a href="#cb3-25" tabindex="-1"></a>dose_argument_water <span class="ot">&lt;-</span> raw_water <span class="sc">%&gt;%</span></span>
-<span id="cb3-26"><a href="#cb3-26" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">coagulant =</span> alum) <span class="sc">%&gt;%</span></span>
-<span id="cb3-27"><a href="#cb3-27" tabindex="-1"></a>  <span class="fu">chemdose_ph_chain</span>(<span class="at">input_water =</span> <span class="st">&quot;balanced_water&quot;</span>, <span class="at">alum =</span> <span class="dv">30</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb3-28"><a href="#cb3-28" tabindex="-1"></a>  <span class="fu">pluck_water</span>(<span class="at">input_water =</span> <span class="st">&quot;dosed_chem_water&quot;</span>, <span class="at">parameter =</span> <span class="st">&quot;ph&quot;</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb3-29"><a href="#cb3-29" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="fu">c</span>(defined_water, balanced_water))</span>
-<span id="cb3-30"><a href="#cb3-30" tabindex="-1"></a></span>
-<span id="cb3-31"><a href="#cb3-31" tabindex="-1"></a><span class="fu">head</span>(dose_argument_water)</span>
-<span id="cb3-32"><a href="#cb3-32" tabindex="-1"></a><span class="sc">&gt;</span><span class="co">#   coagulant                                       dosed_chem_water alum</span></span>
-<span id="cb3-33"><a href="#cb3-33" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 1        10 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt;   30</span></span>
-<span id="cb3-34"><a href="#cb3-34" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 2        20 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt;   30</span></span>
-<span id="cb3-35"><a href="#cb3-35" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 3        30 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt;   30</span></span>
-<span id="cb3-36"><a href="#cb3-36" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 4        40 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt;   30</span></span>
-<span id="cb3-37"><a href="#cb3-37" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 5        50 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt;   30</span></span>
-<span id="cb3-38"><a href="#cb3-38" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 6        60 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt;   30</span></span>
-<span id="cb3-39"><a href="#cb3-39" tabindex="-1"></a><span class="er">&gt;</span><span class="co">#   dosed_chem_water_ph</span></span>
-<span id="cb3-40"><a href="#cb3-40" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 1                6.64</span></span>
-<span id="cb3-41"><a href="#cb3-41" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 2                6.64</span></span>
-<span id="cb3-42"><a href="#cb3-42" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 3                6.64</span></span>
-<span id="cb3-43"><a href="#cb3-43" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 4                6.64</span></span>
-<span id="cb3-44"><a href="#cb3-44" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 5                6.64</span></span>
-<span id="cb3-45"><a href="#cb3-45" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 6                6.64</span></span></code></pre></div>
-<p>For Option 1, notice that the <code>ph</code> column has a different
-result for each row. This shows how powerful the tidywater functions are
-for simulating multiple doses for multiple scenarios. Option 2 creates a
-column, <code>alum</code> to show what was dosed. This may be useful for
-plotting or remembering how much alum was dosed.</p>
+<p>Let’s look at both options using the alum doses from before and
+hydrochloric acid.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>dose_water <span class="ot">&lt;-</span> raw_water <span class="sc">%&gt;%</span></span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">hcl =</span> <span class="dv">10</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>  <span class="fu">chemdose_ph_chain</span>(<span class="at">input_water =</span> <span class="st">&quot;raw&quot;</span>, <span class="at">alum =</span> alum_dose) <span class="sc">%&gt;%</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>  <span class="fu">pluck_water</span>(<span class="at">input_water =</span> <span class="fu">c</span>(<span class="st">&quot;raw&quot;</span>, <span class="st">&quot;dosed_chem_water&quot;</span>), <span class="at">parameter =</span> <span class="st">&quot;ph&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="fu">c</span>(raw, dosed_chem_water))</span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="fu">head</span>(dose_water)</span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="sc">&gt;</span><span class="co">#   alum_dose hcl raw_ph dosed_chem_water_ph</span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 1        20  10    7.9                6.36</span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 2        30  10    7.9                6.19</span></span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 3        40  10    7.9                6.00</span></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 4        50  10    7.9                5.78</span></span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 5        60  10    7.9                5.47</span></span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 6        20  10    8.5                6.73</span></span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a></span>
+<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a>dose_water <span class="ot">&lt;-</span> raw_water <span class="sc">%&gt;%</span></span>
+<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a>  <span class="fu">chemdose_ph_chain</span>(<span class="at">input_water =</span> <span class="st">&quot;raw&quot;</span>, <span class="at">alum =</span> alum_dose, <span class="at">hcl =</span> <span class="dv">5</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a>  <span class="fu">pluck_water</span>(<span class="at">input_water =</span> <span class="fu">c</span>(<span class="st">&quot;raw&quot;</span>, <span class="st">&quot;dosed_chem_water&quot;</span>), <span class="at">parameter =</span> <span class="st">&quot;ph&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="fu">c</span>(raw, dosed_chem_water))</span>
+<span id="cb3-20"><a href="#cb3-20" tabindex="-1"></a></span>
+<span id="cb3-21"><a href="#cb3-21" tabindex="-1"></a><span class="fu">head</span>(dose_water)</span>
+<span id="cb3-22"><a href="#cb3-22" tabindex="-1"></a><span class="sc">&gt;</span><span class="co">#   alum_dose hcl raw_ph dosed_chem_water_ph</span></span>
+<span id="cb3-23"><a href="#cb3-23" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 1        20   5    7.9                6.60</span></span>
+<span id="cb3-24"><a href="#cb3-24" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 2        30   5    7.9                6.42</span></span>
+<span id="cb3-25"><a href="#cb3-25" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 3        40   5    7.9                6.25</span></span>
+<span id="cb3-26"><a href="#cb3-26" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 4        50   5    7.9                6.07</span></span>
+<span id="cb3-27"><a href="#cb3-27" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 5        60   5    7.9                5.87</span></span>
+<span id="cb3-28"><a href="#cb3-28" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 6        20   5    8.5                6.94</span></span></code></pre></div>
 </div>
 <div id="solvedose_ph_once" class="section level2">
 <h2><code>solvedose_ph_once</code></h2>
@@ -490,92 +469,65 @@ distribution system.</p>
 <p>Let’s get back to our analysis. Similar to
 <code>chemdose_ph_chain</code>, <code>solvedose_ph_once</code> can
 handle chemical selection and target pH inputs as a column or function
-arguments.<code>solvedose_ph_once</code> outputs a pH, not a
+arguments.<code>solvedose_ph_once</code> outputs a numeric dose, not a
 <code>water</code> object. Thus, <code>solvedose_ph_chain</code> doesn’t
 exist because the <code>water</code> isn’t changing, so chaining this
 function to a downstream tidywater function can be done using normal
 tidywater operations.</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="co"># 1. Use existing columns in your dataframe to set a target pH and the chemicals to dose</span></span>
-<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>raise_ph <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
-<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>  <span class="at">chemical =</span> <span class="fu">c</span>(<span class="st">&quot;naoh&quot;</span>, <span class="st">&quot;mgoh2&quot;</span>),</span>
-<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>  <span class="at">target_ph =</span> <span class="fu">c</span>(<span class="dv">8</span>, <span class="dv">8</span>)</span>
-<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>)</span>
-<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a>solve_column <span class="ot">&lt;-</span> raw_water <span class="sc">%&gt;%</span></span>
-<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a>  <span class="fu">chemdose_ph_chain</span>(<span class="at">input_water =</span> <span class="st">&quot;balanced_water&quot;</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a>  <span class="fu">cross_join</span>(raise_ph) <span class="sc">%&gt;%</span></span>
-<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a>  <span class="fu">solvedose_ph_once</span>(<span class="at">input_water =</span> <span class="st">&quot;dosed_chem_water&quot;</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="fu">c</span>(defined_water<span class="sc">:</span>dosed_chem_water))</span>
-<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a></span>
-<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a><span class="fu">head</span>(solve_column)</span>
-<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a><span class="sc">&gt;</span><span class="co">#   alum chemical target_ph dose_required</span></span>
-<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 1   10     naoh         8           4.3</span></span>
-<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 2   10    mgoh2         8           3.2</span></span>
-<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 3   20     naoh         8           8.3</span></span>
-<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 4   20    mgoh2         8           6.1</span></span>
-<span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 5   30     naoh         8          12.4</span></span>
-<span id="cb4-19"><a href="#cb4-19" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 6   30    mgoh2         8           9.0</span></span>
-<span id="cb4-20"><a href="#cb4-20" tabindex="-1"></a></span>
-<span id="cb4-21"><a href="#cb4-21" tabindex="-1"></a><span class="co"># 2. Set the target pH and chemical needed to raise the pH inside the function</span></span>
-<span id="cb4-22"><a href="#cb4-22" tabindex="-1"></a>solve_argument <span class="ot">&lt;-</span> raw_water <span class="sc">%&gt;%</span></span>
-<span id="cb4-23"><a href="#cb4-23" tabindex="-1"></a>  <span class="fu">chemdose_ph_chain</span>(<span class="at">input_water =</span> <span class="st">&quot;balanced_water&quot;</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb4-24"><a href="#cb4-24" tabindex="-1"></a>  <span class="fu">solvedose_ph_once</span>(<span class="at">input_water =</span> <span class="st">&quot;dosed_chem_water&quot;</span>, <span class="at">chemical =</span> <span class="st">&quot;naoh&quot;</span>, <span class="at">target_ph =</span> <span class="dv">8</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb4-25"><a href="#cb4-25" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="fu">c</span>(defined_water<span class="sc">:</span>dosed_chem_water))</span>
-<span id="cb4-26"><a href="#cb4-26" tabindex="-1"></a></span>
-<span id="cb4-27"><a href="#cb4-27" tabindex="-1"></a><span class="fu">head</span>(solve_argument)</span>
-<span id="cb4-28"><a href="#cb4-28" tabindex="-1"></a><span class="sc">&gt;</span><span class="co">#   alum target_ph chemical dose_required</span></span>
-<span id="cb4-29"><a href="#cb4-29" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 1   10         8     naoh           4.3</span></span>
-<span id="cb4-30"><a href="#cb4-30" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 2   20         8     naoh           8.3</span></span>
-<span id="cb4-31"><a href="#cb4-31" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 3   30         8     naoh          12.4</span></span>
-<span id="cb4-32"><a href="#cb4-32" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 4   40         8     naoh          16.5</span></span>
-<span id="cb4-33"><a href="#cb4-33" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 5   50         8     naoh          20.4</span></span>
-<span id="cb4-34"><a href="#cb4-34" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 6   60         8     naoh          24.6</span></span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>solve_ph <span class="ot">&lt;-</span> raw_water <span class="sc">%&gt;%</span></span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>  <span class="fu">chemdose_ph_chain</span>(<span class="st">&quot;raw&quot;</span>, <span class="at">alum =</span> alum_dose) <span class="sc">%&gt;%</span></span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">target_ph =</span> <span class="dv">8</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>  <span class="fu">solvedose_ph_once</span>(<span class="at">input_water =</span> <span class="st">&quot;dosed_chem_water&quot;</span>, <span class="at">chemical =</span> <span class="fu">c</span>(<span class="st">&quot;naoh&quot;</span>, <span class="st">&quot;mgoh2&quot;</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="fu">c</span>(raw, dosed_chem_water))</span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a><span class="fu">head</span>(solve_ph)</span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a><span class="sc">&gt;</span><span class="co">#   alum_dose target_ph chemical dose_required</span></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 1        20         8     naoh           8.3</span></span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 2        20         8    mgoh2           6.1</span></span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 3        30         8     naoh          12.4</span></span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 4        30         8    mgoh2           9.0</span></span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 5        40         8     naoh          16.5</span></span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 6        40         8    mgoh2          12.0</span></span></code></pre></div>
 <p>Now that we have the dose required to raise the pH to 8, let’s dose
 caustic into the water!</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>dosed_caustic_water <span class="ot">&lt;-</span> raw_water <span class="sc">%&gt;%</span></span>
-<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>  <span class="fu">chemdose_ph_chain</span>(<span class="at">input_water =</span> <span class="st">&quot;balanced_water&quot;</span>, <span class="at">output_water =</span> <span class="st">&quot;alum_dosed&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>  <span class="fu">chemdose_ph_chain</span>(<span class="at">input_water =</span> <span class="st">&quot;raw&quot;</span>, <span class="at">output_water =</span> <span class="st">&quot;alum_dosed&quot;</span>, <span class="at">alum =</span> alum_dose) <span class="sc">%&gt;%</span></span>
 <span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>  <span class="fu">solvedose_ph_once</span>(<span class="at">input_water =</span> <span class="st">&quot;alum_dosed&quot;</span>, <span class="at">chemical =</span> <span class="st">&quot;naoh&quot;</span>, <span class="at">target_ph =</span> <span class="dv">8</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>  <span class="fu">rename</span>(</span>
-<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>    <span class="at">naoh =</span> dose_required,</span>
-<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a>    <span class="at">coagulant =</span> alum</span>
-<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span> <span class="co"># rename alum column so it doesn&#39;t get dosed twice</span></span>
-<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a>  <span class="fu">chemdose_ph_chain</span>(<span class="at">input_water =</span> <span class="st">&quot;alum_dosed&quot;</span>, <span class="at">output_water =</span> <span class="st">&quot;caustic_dosed&quot;</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a>  <span class="fu">pluck_water</span>(<span class="at">input_water =</span> <span class="st">&quot;caustic_dosed&quot;</span>, <span class="st">&quot;ph&quot;</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="fu">c</span>(defined_water<span class="sc">:</span>chemical))</span>
-<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a></span>
-<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a><span class="fu">head</span>(dosed_caustic_water)</span>
-<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a><span class="sc">&gt;</span><span class="co">#                                            caustic_dosed naoh caustic_dosed_ph</span></span>
-<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 1 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt;  4.3             7.99</span></span>
-<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 2 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt;  8.3             7.98</span></span>
-<span id="cb5-16"><a href="#cb5-16" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 3 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt; 12.4             8.02</span></span>
-<span id="cb5-17"><a href="#cb5-17" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 4 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt; 16.5             8.01</span></span>
-<span id="cb5-18"><a href="#cb5-18" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 5 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt; 20.4             7.99</span></span>
-<span id="cb5-19"><a href="#cb5-19" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 6 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt; 24.6             8.01</span></span></code></pre></div>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>  <span class="fu">chemdose_ph_chain</span>(<span class="at">input_water =</span> <span class="st">&quot;alum_dosed&quot;</span>, <span class="at">output_water =</span> <span class="st">&quot;caustic_dosed&quot;</span>, <span class="at">naoh =</span> dose_required) <span class="sc">%&gt;%</span></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>  <span class="fu">pluck_water</span>(<span class="at">input_water =</span> <span class="st">&quot;caustic_dosed&quot;</span>, <span class="st">&quot;ph&quot;</span>)</span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="fu">head</span>(dosed_caustic_water)</span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="sc">&gt;</span><span class="co">#                                                      raw alum_dose</span></span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 1 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt;        20</span></span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 2 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt;        30</span></span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 3 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt;        40</span></span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 4 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt;        50</span></span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 5 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt;        60</span></span>
+<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 6 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt;        20</span></span>
+<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a><span class="er">&gt;</span><span class="co">#                                               alum_dosed target_ph chemical</span></span>
+<span id="cb5-16"><a href="#cb5-16" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 1 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt;         8     naoh</span></span>
+<span id="cb5-17"><a href="#cb5-17" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 2 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt;         8     naoh</span></span>
+<span id="cb5-18"><a href="#cb5-18" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 3 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt;         8     naoh</span></span>
+<span id="cb5-19"><a href="#cb5-19" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 4 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt;         8     naoh</span></span>
+<span id="cb5-20"><a href="#cb5-20" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 5 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt;         8     naoh</span></span>
+<span id="cb5-21"><a href="#cb5-21" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 6 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt;         8     naoh</span></span>
+<span id="cb5-22"><a href="#cb5-22" tabindex="-1"></a><span class="er">&gt;</span><span class="co">#   dose_required                                          caustic_dosed</span></span>
+<span id="cb5-23"><a href="#cb5-23" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 1           8.3 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt;</span></span>
+<span id="cb5-24"><a href="#cb5-24" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 2          12.4 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt;</span></span>
+<span id="cb5-25"><a href="#cb5-25" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 3          16.5 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt;</span></span>
+<span id="cb5-26"><a href="#cb5-26" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 4          20.5 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt;</span></span>
+<span id="cb5-27"><a href="#cb5-27" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 5          24.4 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt;</span></span>
+<span id="cb5-28"><a href="#cb5-28" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 6           6.2 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt;</span></span>
+<span id="cb5-29"><a href="#cb5-29" tabindex="-1"></a><span class="er">&gt;</span><span class="co">#   caustic_dosed_ph</span></span>
+<span id="cb5-30"><a href="#cb5-30" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 1             7.99</span></span>
+<span id="cb5-31"><a href="#cb5-31" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 2             8.02</span></span>
+<span id="cb5-32"><a href="#cb5-32" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 3             8.00</span></span>
+<span id="cb5-33"><a href="#cb5-33" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 4             8.02</span></span>
+<span id="cb5-34"><a href="#cb5-34" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 5             8.01</span></span>
+<span id="cb5-35"><a href="#cb5-35" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 6             7.99</span></span></code></pre></div>
 <p>You can see the resulting pH from dosing caustic has raised the pH to
-8 +/- 0.02 SU.</p>
-</div>
-<div id="multiple-chemicals" class="section level2">
-<h2>Multiple chemicals</h2>
-<p><code>chemdose_ph</code> is powerful because it can handle multiple
-chemical inputs. To demonstrate this, we will assume the utility
-regularly operates under enhanced coagulation. Assuming their alum dose
-is always 30 mg/L and their acid (HCl) dose is always 10 mg/L.</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>enhanced_coag_water <span class="ot">&lt;-</span> raw_water <span class="sc">%&gt;%</span></span>
-<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">alum =</span> <span class="dv">30</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>  <span class="fu">chemdose_ph_chain</span>(<span class="at">input_water =</span> <span class="st">&quot;balanced_water&quot;</span>, <span class="at">output_water =</span> <span class="st">&quot;alum_dosed&quot;</span>, <span class="at">hcl =</span> <span class="dv">10</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>  <span class="fu">pluck_water</span>(<span class="st">&quot;alum_dosed&quot;</span>, <span class="st">&quot;ph&quot;</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a>  <span class="fu">solvedose_ph_once</span>(<span class="at">input_water =</span> <span class="st">&quot;alum_dosed&quot;</span>, <span class="at">target_ph =</span> <span class="dv">8</span>, <span class="at">chemical =</span> <span class="st">&quot;naoh&quot;</span>, <span class="at">output_column =</span> <span class="st">&quot;naoh&quot;</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="fu">c</span>(alum, hcl)) <span class="sc">%&gt;%</span> <span class="co"># remove chemical columns so they don&#39;t get dosed again in the next line.</span></span>
-<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a>  <span class="fu">chemdose_ph_chain</span>(<span class="at">input_water =</span> <span class="st">&quot;alum_dosed&quot;</span>, <span class="at">output_water =</span> <span class="st">&quot;ph_adjusted&quot;</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="fu">c</span>(defined_water<span class="sc">:</span>alum_dosed, target_ph, chemical))</span>
-<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a></span>
-<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a><span class="fu">head</span>(enhanced_coag_water)</span>
-<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a><span class="sc">&gt;</span><span class="co">#   alum_dosed_ph                                            ph_adjusted naoh</span></span>
-<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 1          6.15 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt; 23.5</span></span>
-<span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 2          6.15 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt; 23.5</span></span>
-<span id="cb6-14"><a href="#cb6-14" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 3          6.15 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt; 23.5</span></span>
-<span id="cb6-15"><a href="#cb6-15" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 4          6.15 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt; 23.5</span></span>
-<span id="cb6-16"><a href="#cb6-16" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 5          6.15 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt; 23.5</span></span>
-<span id="cb6-17"><a href="#cb6-17" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 6          6.15 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt; 23.5</span></span></code></pre></div>
+8 +/- 0.02 SU. Doses are rounded to the nearest 0.1 mg/L to make the
+calculations go a little faster.</p>
 </div>
 
 

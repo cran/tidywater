@@ -1,7 +1,7 @@
 Package: tidywater
 Type: Package
 Title: Water Quality Models for Drinking Water Treatment Processes
-Version: 0.7.0
+Version: 0.8.2
 Authors@R: c(person("Sierra", "Johnson", email = "sjohnson2@brwncald.com", role = c("aut", "cre")),
     person("Libby", "McKenna", email = "lmckenna@brwncald.com", role = c("aut")),
     person("Riley", "Mulhern", email = "rmulhern@brwncald.com", role = c("aut"), comment = c(ORCID = "0000-0001-6293-3672")),
@@ -23,20 +23,20 @@ Description: Provides multiple water chemistry-based models and published empiri
 License: Apache License (>= 2) | MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
-Imports: dplyr, tidyr, knitr, ggplot2, ggrepel, magrittr, purrr, furrr,
-        methods, rlang
+Imports: dplyr, tidyr, forcats, knitr, ggplot2, ggrepel, magrittr,
+        purrr, furrr, methods, rlang, deSolve
 RoxygenNote: 7.3.2
 Depends: R (>= 2.10)
 Suggests: rmarkdown, testthat (>= 3.0.0)
 Config/testthat/edition: 3
 VignetteBuilder: knitr
-Date: 2025-01-22
+Date: 2025-05-16
 NeedsCompilation: no
-Packaged: 2025-01-22 23:09:09 UTC; SJohnson2
+Packaged: 2025-05-17 07:28:07 UTC; SJohnson2
 Author: Sierra Johnson [aut, cre],
   Libby McKenna [aut],
-  Riley Mulhern [aut] (<https://orcid.org/0000-0001-6293-3672>),
-  Chris Corwin [aut] (<https://orcid.org/0000-0002-9462-0352>),
+  Riley Mulhern [aut] (ORCID: <https://orcid.org/0000-0001-6293-3672>),
+  Chris Corwin [aut] (ORCID: <https://orcid.org/0000-0002-9462-0352>),
   Rachel Merrifield [ctb],
   Mayuri Namasivayam [ctb],
   Phoebe Chen [ctb],
@@ -45,4 +45,4 @@ Author: Sierra Johnson [aut, cre],
   Brown and Caldwell [fnd, cph]
 Maintainer: Sierra Johnson <sjohnson2@brwncald.com>
 Repository: CRAN
-Date/Publication: 2025-01-22 23:40:02 UTC
+Date/Publication: 2025-05-17 07:50:02 UTC
