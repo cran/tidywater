@@ -55,7 +55,7 @@ The df may include a column named for the applied chlorine dose (cl2_dose), and 
 }
 \description{
 \code{\link{chemdose_chloramine}}, adopted from the U.S. EPA's Chlorine Breakpoint Curve Simulator,
-calculates chlorine and chlorinamine concentrations based on the two papers Jafvert & Valentine
+calculates chlorine and chloramine concentrations based on the two papers Jafvert & Valentine
 (Environ. Sci. Technol., 1992, 26 (3), pp 577-586) and Vikesland et al. (Water Res., 2001, 35 (7), pp 1766-1776).
 Required arguments include an object of class "water" created by \code{\link{define_water}}, chlorine dose, and reaction time.
 The function also requires additional water quality parameters defined in \code{\link{define_water}}
@@ -90,7 +90,7 @@ breakpoint <- water_df \%>\%
 \donttest{
 # Initialize parallel processing
 library(furrr)
-plan(multisession, workers = 2) # Remove the workers argument to use all available compute
+# plan(multisession)
 
 example_df <- water_df \%>\%
   define_water_chain() \%>\%
@@ -99,7 +99,7 @@ example_df <- water_df \%>\%
   )
 
 # Optional: explicitly close multisession processing
-plan(sequential)
+# plan(sequential)
 }
 
 }

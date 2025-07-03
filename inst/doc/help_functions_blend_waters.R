@@ -9,6 +9,7 @@ library(dplyr)
 library(ggplot2)
 library(furrr)
 library(purrr)
+
 # plan(multisession)
 
 ## ----warning=FALSE, echo=TRUE-------------------------------------------------
@@ -56,7 +57,7 @@ blended_wells_water <- blend_waters(
 blended_wells_water
 
 ## ----warning=FALSE------------------------------------------------------------
-# Assume wells can contribute 2.5 MGD each
+# Assume wells can contribute up to 5 MGD each
 groundwater <- tibble(Wells_flow = c(0, 2.5, 5))
 # Blending scenarios and the resulting source water ratios
 scenarios <- tibble(
@@ -113,14 +114,4 @@ ggplot(plotting_data, aes(x = total_flow, y = blended_water_tot_hard, color = as
     y = "Hardness (mg/L as CaCO3)", color = "Well Flow (MGD)",
     x = "Total Plant Flow (MGD)"
   )
-
-## ----warning=FALSE------------------------------------------------------------
-# For most operating systems, especially Windows, use this at the beginning of your script
-# We recommend removing the `workers` argument to use your computer's full power.
-plan(multisession, workers = 2)
-
-# rest of script
-
-# At the end of the script, here's an option to explicitly close the multisession processing
-plan(sequential)
 

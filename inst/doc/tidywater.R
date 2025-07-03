@@ -26,6 +26,14 @@ dosed_water@doc
 coag_water@doc
 
 ## -----------------------------------------------------------------------------
+piped_coag_water <- mywater %>%
+  chemdose_ph(hcl = 5, alum = 20) %>%
+  chemdose_toc(alum = 20)
+
+piped_coag_water@ph
+piped_coag_water@doc
+
+## -----------------------------------------------------------------------------
 caustic_req <- solvedose_ph(coag_water, target_ph = 8.6, chemical = "naoh")
 
 fin_water <- chemdose_ph(coag_water, naoh = caustic_req)

@@ -12,7 +12,7 @@
 
 
 
-<title>Helper Functions: Blending Multiple Waters</title>
+<title>Blending Multiple Waters</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -336,35 +336,30 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 
 
-<h1 class="title toc-ignore">Helper Functions: Blending Multiple
-Waters</h1>
+<h1 class="title toc-ignore">Blending Multiple Waters</h1>
 
 
 
 <p>This vignette assumes a basic understanding of
 <code>define_water</code> and the S4 <code>water</code> class. See
 <code>vignette(&quot;intro&quot;, package = &quot;tidywater&quot;)</code> for more
-information.</p>
+information. Additionally, for more information on tidywater’s
+<code>_chain</code> and <code>pluck_waters</code> functions, please see
+the
+<code>vignette(&quot;help_functions_chemdose_ph&quot;, package = &quot;tidywater&quot;)</code>.</p>
 <div id="blending-analysis-setup" class="section level2">
-<h2>Blending Analysis Setup</h2>
+<h2>Blending analysis setup</h2>
 <p>In this analysis, a hypothetical drinking water utility sources their
 water from a river and a lake, both of which have high hardness. The
 operators are investigating whether blending up to 5 MGD from two
 groundwater wells will reduce the total hardness below 200 mg/L as
 CaCO3.</p>
 </div>
-<div id="define_water_chain" class="section level2">
-<h2><code>define_water_chain</code></h2>
+<div id="well-setup" class="section level2">
+<h2>Well setup</h2>
 <p>First, let’s take a look at the available groundwater data from Well
 A and Well B. We use <code>define_water_chain</code> so that other
-models can be added to the dataframe. This function takes a dataframe
-input, then outputs all parameters in a <code>water</code> class column.
-This is true for all tidywater functions with the <code>_chain</code>
-suffix. <code>_chain</code> functions are handy in a piped code block
-where you’ll need to use many tidywater functions, such as
-<code>chemdose_ph</code>, <code>chemdose_toc</code>, etc. Some tidywater
-functions output numbers instead of waters, those helpers have the
-<code>_once</code> suffix</p>
+models can be added to the dataframe.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="co"># Read in data from Wells A and B</span></span>
 <span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>raw_wells_water <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
 <span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>  <span class="at">Well =</span> <span class="fu">c</span>(<span class="st">&quot;A&quot;</span>, <span class="st">&quot;B&quot;</span>),</span>
@@ -384,11 +379,11 @@ functions output numbers instead of waters, those helpers have the
 <span id="cb1-17"><a href="#cb1-17" tabindex="-1"></a></span>
 <span id="cb1-18"><a href="#cb1-18" tabindex="-1"></a>raw_wells_water</span>
 <span id="cb1-19"><a href="#cb1-19" tabindex="-1"></a><span class="sc">&gt;</span><span class="co">#                                            defined_water Well</span></span>
-<span id="cb1-20"><a href="#cb1-20" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 1 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt;    A</span></span>
-<span id="cb1-21"><a href="#cb1-21" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 2 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt;    B</span></span>
+<span id="cb1-20"><a href="#cb1-20" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 1 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 62 slots&gt;    A</span></span>
+<span id="cb1-21"><a href="#cb1-21" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 2 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 62 slots&gt;    B</span></span>
 <span id="cb1-22"><a href="#cb1-22" tabindex="-1"></a><span class="er">&gt;</span><span class="co">#                                           balanced_water</span></span>
-<span id="cb1-23"><a href="#cb1-23" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 1 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt;</span></span>
-<span id="cb1-24"><a href="#cb1-24" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 2 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 67 slots&gt;</span></span></code></pre></div>
+<span id="cb1-23"><a href="#cb1-23" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 1 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 62 slots&gt;</span></span>
+<span id="cb1-24"><a href="#cb1-24" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># 2 &lt;S4 class &#39;water&#39; [package &quot;tidywater&quot;] with 62 slots&gt;</span></span></code></pre></div>
 <p>It’s always a good idea to verify our code is working properly. To
 make sure that our data was balanced using
 <code>balance_ions_chain</code>, we can plot our <code>water</code>
@@ -412,10 +407,7 @@ Enter: <code>blend_waters</code>. This function blends waters as you’d
 expect, and does all the pH blending math for you. In the example below,
 we’re going to be blending inefficiently. But don’t worry, there will be
 a better blending example later.</p>
-</div>
-<div id="blend_waters" class="section level2">
-<h2><code>blend_waters</code></h2>
-<p>To blend our two wells, we will blend row 1 of
+<p>To mix our two wells, we will blend row 1 of
 <code>balanced_water</code> with row 2 of <code>balanced_water</code>.
 This “vertical” blending is not efficient and will not be useful for
 large data frames. <code>water</code> objects cannot be pivoted, hence
@@ -442,10 +434,13 @@ water.</p>
 <span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># Temperature (deg C):  18.5 </span></span>
 <span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># Alkalinity (mg/L CaCO3):  125 </span></span>
 <span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a><span class="er">&gt;</span><span class="co"># Use summary functions or slot names to view other parameters.</span></span></code></pre></div>
+</div>
+<div id="blending-scenarios-and-finish-source-setup" class="section level2">
+<h2>Blending scenarios and finish source setup</h2>
 <p>We will create a data frame of the blend scenarios we will be
 modeling, in this case, we are varying flow rates from the different
 sources.</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="co"># Assume wells can contribute 2.5 MGD each</span></span>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="co"># Assume wells can contribute up to 5 MGD each</span></span>
 <span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>groundwater <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">Wells_flow =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="fl">2.5</span>, <span class="dv">5</span>))</span>
 <span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="co"># Blending scenarios and the resulting source water ratios</span></span>
 <span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>scenarios <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
@@ -463,9 +458,10 @@ sources.</p>
 <span id="cb5-16"><a href="#cb5-16" tabindex="-1"></a>  )</span></code></pre></div>
 <p>To finish blending our wells, we will transform the
 <code>blended_wells</code> <code>water</code> object into a data frame
-containing a <code>water</code> column. The river and lake sources don’t
-require any mixing. We’ll set up their raw data and balance the ions
-using <code>define_water_chain</code> to make a data frame with a
+containing a <code>water</code> column.</p>
+<p>The river and lake sources don’t require any mixing. We’ll set up
+their raw data and balance the ions using
+<code>define_water_chain</code> to make a data frame with a
 <code>water</code> column. In <code>balance_ions_chain</code>, we are
 specifying the name of the output columns so we can use the different
 water sources later. Most of tidywater’s <code>_chain</code> functions
@@ -489,8 +485,8 @@ the <code>_chain</code> function.</p>
 <span id="cb6-16"><a href="#cb6-16" tabindex="-1"></a>  <span class="fu">balance_ions_chain</span>(<span class="at">output_water =</span> <span class="st">&quot;lake&quot;</span>) <span class="sc">%&gt;%</span></span>
 <span id="cb6-17"><a href="#cb6-17" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>defined_water)</span></code></pre></div>
 </div>
-<div id="blend_waters_chain" class="section level2">
-<h2><code>blend_waters_chain</code></h2>
+<div id="blending-multiple-sources" class="section level2">
+<h2>Blending multiple sources</h2>
 <p>Now that we have our 3 sources defined, balanced, and cleaned up, we
 can blend them. This next code chunk showcases the power of working in a
 data frame. We’ll use <code>blend_waters_chain</code>, the helper
@@ -508,24 +504,10 @@ ratios must always add up to 1, otherwise the function will not run.</p>
 <span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a>    <span class="at">waters =</span> <span class="fu">c</span>(<span class="st">&quot;wells&quot;</span>, <span class="st">&quot;river&quot;</span>, <span class="st">&quot;lake&quot;</span>),</span>
 <span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a>    <span class="at">ratios =</span> <span class="fu">c</span>(<span class="st">&quot;Wells_ratio&quot;</span>, <span class="st">&quot;River_ratio&quot;</span>, <span class="st">&quot;Lake_ratio&quot;</span>)</span>
 <span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a>  )</span></code></pre></div>
-</div>
-<div id="pluck_water" class="section level2">
-<h2><code>pluck_water</code></h2>
 <p>With all three source waters blended for each tested scenario, we can
-pull out a parameter of interest. In this case, we’re investigating how
-much we can dilute the total hardness. This brings us to our final
-helper function for this vignette: <code>pluck_water</code>. This
-function uses <code>purrr::pluck</code> to create a new column for one
-selected parameter from a <code>water</code> class object. You can
-choose which <code>water</code> column to pluck from using the
-<code>input_water</code> argument. Next, select the parameter of
-interest (which must match the water slot’s name). Finally, the output
-column’s name will default to the name of the plucked parameter, but
-there is an option to name it yourself using the
-<code>output_column</code> argument. If you want to view all the
-parameters as separate columns, it is better to use a <code>_once</code>
-function instead of <code>_chain</code> (i.e., we could have used
-<code>blend_water_once</code> above).</p>
+pull out a parameter of interest using <code>pluck_water</code>.
+Finally, we finish by plotting our parameter of interest with the
+<code>ggplot</code> package.</p>
 <div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>plotting_data <span class="ot">&lt;-</span> blend_water <span class="sc">%&gt;%</span></span>
 <span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>  <span class="fu">pluck_water</span>(<span class="at">input_water =</span> <span class="st">&quot;blended_water&quot;</span>, <span class="st">&quot;tot_hard&quot;</span>)</span>
 <span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a></span>
@@ -538,26 +520,19 @@ function instead of <code>_chain</code> (i.e., we could have used
 <span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a>  )</span></code></pre></div>
 <p><img role="img" src="data:image/png;base64,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" /><!-- --></p>
 </div>
-<div id="speed-it-up" class="section level2">
-<h2>Speed it up</h2>
-<p>As you use more tidywater helper functions with larger data sets,
-you’ll notice the code can take a few minutes to run. All helper
-functions use functions from the
-<a href="https://furrr.futureverse.org/"> furrr package</a>. To reduce
-processing time, you can activate <code>furrr</code>’s parallel
-processing power by using <code>plan()</code> at the beginning of your
-script. <code>plan()</code> depends on what type of operating system you
-have, more info on that in the
-<a href="https://furrr.futureverse.org/"> Controlling How Futures are
-Resolved</a> table.</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="co"># For most operating systems, especially Windows, use this at the beginning of your script</span></span>
-<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="co"># We recommend removing the `workers` argument to use your computer&#39;s full power.</span></span>
-<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a><span class="fu">plan</span>(multisession, <span class="at">workers =</span> <span class="dv">2</span>)</span>
-<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a></span>
-<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a><span class="co"># rest of script</span></span>
-<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a></span>
-<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a><span class="co"># At the end of the script, here&#39;s an option to explicitly close the multisession processing</span></span>
-<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a><span class="fu">plan</span>(sequential)</span></code></pre></div>
+<div id="summary" class="section level2">
+<h2>Summary</h2>
+<p>In this tutorial, we learned how to use the <code>blend_waters</code>
+function to determine resulting water quality of multipled mixed
+sources. The function inputs <code>water</code> objects and their
+blending ratios, and outputs a new column storing updated parameters
+with the class <code>water</code>.</p>
+<p>We also got more practice using helper functions with the
+<code>_chain</code> suffix and also <code>pluck_water</code>. For more
+context on helper functions or to learn more about the
+<code>chemdose_ph</code> and <code>solvedose_ph</code> functions, please
+see
+<code>vignette(&quot;help_functions_chemdose_ph&quot;, package = &quot;tidywater&quot;)</code>.</p>
 </div>
 
 
