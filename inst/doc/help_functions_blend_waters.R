@@ -7,10 +7,7 @@ library(tidywater)
 library(tidyr)
 library(dplyr)
 library(ggplot2)
-library(furrr)
 library(purrr)
-
-# plan(multisession)
 
 ## ----warning=FALSE, echo=TRUE-------------------------------------------------
 # Read in data from Wells A and B
@@ -27,17 +24,17 @@ raw_wells_water <- tibble(
   cl = c(0, 30),
   so4 = c(0, 0)
 ) %>%
-  define_water_chain() %>%
-  balance_ions_chain()
+  define_water_df() %>%
+  balance_ions_df()
 
 raw_wells_water
 
 ## ----fig.width=7--------------------------------------------------------------
-# Ion plot before balance_ions_chain was applied
-raw_wells_water$defined_water[[1]] %>%
+# Ion plot before balance_ions_df was applied
+raw_wells_water$defined[[1]] %>%
   plot_ions()
 # Plot of balanced ions
-raw_wells_water$balanced_water[[1]] %>%
+raw_wells_water$balanced[[1]] %>%
   plot_ions()
 
 ## ----warning=FALSE------------------------------------------------------------
@@ -48,7 +45,7 @@ raw_wells_water$balanced_water[[1]] %>%
 
 blended_wells_water <- blend_waters(
   waters = c(
-    pluck(raw_wells_water, "balanced_water", 1),
+    pluck(raw_wells_water, "balanced", 1),
     pluck(raw_wells_water, 3, 2)
   ),
   ratios = c(.5, .5)
@@ -81,34 +78,34 @@ River_water <- tibble(
   ph = 7, temp = 20, alk = 200, tds = 950, cond = 1400,
   tot_hard = 300, na = 100, cl = 150, so4 = 200
 ) %>%
-  define_water_chain() %>%
-  balance_ions_chain(output_water = "river") %>%
-  select(-defined_water)
+  define_water_df() %>%
+  balance_ions_df(output_water = "river") %>%
+  select(-defined)
 
 Lake_water <- tibble(
   ph = 7.5, temp = 19, alk = 180, tds = 900, cond = 1000,
   tot_hard = 350, ca_hard = 250, na = 100, cl = 100, so4 = 150
 ) %>%
-  define_water_chain() %>%
-  balance_ions_chain(output_water = "lake") %>%
-  select(-defined_water)
+  define_water_df() %>%
+  balance_ions_df(output_water = "lake") %>%
+  select(-defined)
 
 ## ----warning=FALSE------------------------------------------------------------
 blend_water <- scenarios %>%
   cross_join(Wells_water) %>%
   cross_join(River_water) %>%
   cross_join(Lake_water) %>%
-  blend_waters_chain(
+  blend_waters_df(
     waters = c("wells", "river", "lake"),
     ratios = c("Wells_ratio", "River_ratio", "Lake_ratio")
   )
 
 ## ----fig.width= 7-------------------------------------------------------------
 plotting_data <- blend_water %>%
-  pluck_water(input_water = "blended_water", "tot_hard")
+  pluck_water(input_water = "blended", "tot_hard")
 
 # Plot the results!
-ggplot(plotting_data, aes(x = total_flow, y = blended_water_tot_hard, color = as.character(Wells_flow))) +
+ggplot(plotting_data, aes(x = total_flow, y = blended_tot_hard, color = as.character(Wells_flow))) +
   geom_point() +
   labs(
     y = "Hardness (mg/L as CaCO3)", color = "Well Flow (MGD)",

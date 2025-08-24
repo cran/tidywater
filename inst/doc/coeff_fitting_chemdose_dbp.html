@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Fitting and using custom coefficients in chemdose_dbp</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Fitting and using custom coefficients in
+chemdose_dbp</h1>
+
+
+
+<p>This vignette assumes a basic understanding of
+<code>define_water</code> and the S4 <code>water</code> class. See
+<code>vignette(&quot;intro&quot;, package = &quot;tidywater&quot;)</code> for more
+information. Additionally, for more information on tidywater’s
+<code>_df</code> and <code>pluck_waters</code> functions, please see the
+<code>vignette(&quot;help_functions_chemdose_ph&quot;, package = &quot;tidywater&quot;)</code>.</p>
+<div id="water-setup" class="section level2">
+<h2>Water setup</h2>
+<p>Let’s assume we’re working with a drinking water treatment facility
+that is concerned about disinfection byproducts (DBPs) in its
+distribution system and want to use tidywater to help predict DBP
+formation due to chlorine addition. In an initial assessment, we can use
+the facility’s influent water and disinfection method to predict DBPs
+using the <code>chemdose_dbp</code> function.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>influent <span class="ot">&lt;-</span> <span class="fu">define_water</span>(<span class="at">ph =</span> <span class="fl">7.5</span>, <span class="at">temp =</span> <span class="dv">20</span>, <span class="at">alk =</span> <span class="dv">50</span>, <span class="at">toc =</span> <span class="dv">4</span>, <span class="at">uv254 =</span> .<span class="dv">2</span>, <span class="at">br =</span> <span class="dv">50</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>  <span class="fu">chemdose_dbp</span>(<span class="at">cl2 =</span> <span class="dv">2</span>, <span class="at">time =</span> <span class="dv">8</span>, <span class="at">treatment =</span> <span class="st">&quot;coag&quot;</span>, <span class="at">cl_type =</span> <span class="st">&quot;chlorine&quot;</span>, <span class="at">location =</span> <span class="st">&quot;plant&quot;</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="co">#&gt; Warning in define_water(ph = 7.5, temp = 20, alk = 50, toc = 4, uv254 = 0.2, :</span></span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a><span class="co">#&gt; Missing value for DOC. Default value of 95% of TOC will be used.</span></span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a><span class="co">#&gt; Warning in define_water(ph = 7.5, temp = 20, alk = 50, toc = 4, uv254 = 0.2, :</span></span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a><span class="co">#&gt; Major ions missing and neither TDS or conductivity entered. Ideal conditions</span></span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a><span class="co">#&gt; will be assumed. Ionic strength will be set to NA and activity coefficients in</span></span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a><span class="co">#&gt; future calculations will be set to 1.</span></span></code></pre></div>
+<p>The influent water object now has populated slots corresponding to
+predicted DBP concentrations after coagulation, including tthm for total
+trihalomethanes and haa5 for sum of haloacetic acids. However, when
+comparing these results to the facility’s record, we realize that the
+default model coefficients used in <code>chemdose_dbp</code> don’t
+accurately predict DBP formation at this facility. We can still use
+<code>chemdose_dbp</code>; we just need to fit coefficients customized
+for this facility.</p>
+</div>
+<div id="fitting-dbp-coefficients" class="section level2">
+<h2>Fitting DBP coefficients</h2>
+<p>We can use the <code>optim()</code> function to fit custom
+coefficients to the facility’s DBP data. In this example, let’s say that
+only the predictions for chloroform (chcl3) are not accurate. First,
+let’s visualize the facility data against the default DBP predictions.
+As the graph shows, the default coefficients consistently under-predict
+the amount of DBPs formed in the water (the points are below the 1:1
+line).</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="co"># Given sample data</span></span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>dbp_data <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>  <span class="at">ph =</span> <span class="fu">c</span>(<span class="dv">7</span>, <span class="fl">7.04</span>, <span class="fl">7.5</span>, <span class="fl">7.9</span>, <span class="fl">7.2</span>, <span class="fl">7.25</span>),</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>  <span class="at">temp =</span> <span class="fu">rep</span>(<span class="dv">20</span>, <span class="dv">6</span>),</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>  <span class="at">alk =</span> <span class="fu">c</span>(<span class="dv">50</span>, <span class="dv">66</span>, <span class="dv">75</span>, <span class="dv">80</span>, <span class="dv">55</span>, <span class="dv">100</span>),</span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>  <span class="at">toc =</span> <span class="fu">c</span>(<span class="dv">4</span>, <span class="dv">8</span>, <span class="dv">4</span>, <span class="dv">10</span>, <span class="dv">5</span>, <span class="dv">6</span>),</span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>  <span class="at">uv254 =</span> <span class="fu">c</span>(<span class="fl">0.1</span>, <span class="fl">0.2</span>, <span class="fl">0.2</span>, <span class="fl">0.1</span>, <span class="fl">0.05</span>, <span class="fl">0.2</span>),</span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>  <span class="at">br =</span> <span class="fu">rep</span>(<span class="dv">50</span>, <span class="dv">6</span>),</span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>  <span class="at">fin_chcl3 =</span> <span class="fu">c</span>(<span class="dv">62</span>, <span class="fl">138.5</span>, <span class="dv">71</span>, <span class="dv">206</span>, <span class="fl">83.5</span>, <span class="dv">100</span>)</span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a>) <span class="sc">%&gt;%</span></span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a>  <span class="fu">define_water_df</span>(<span class="st">&quot;input&quot;</span>)</span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a></span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a><span class="co"># Predicted chcl3 concentrations using default coefficients</span></span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a>plot_unfit_dbps <span class="ot">&lt;-</span> dbp_data <span class="sc">%&gt;%</span></span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a>  <span class="fu">chemdose_dbp_df</span>(<span class="st">&quot;input&quot;</span>, <span class="at">cl2 =</span> <span class="dv">2</span>, <span class="at">time =</span> <span class="dv">8</span>, <span class="at">treatment =</span> <span class="st">&quot;raw&quot;</span>, <span class="at">cl_type =</span> <span class="st">&quot;chlorine&quot;</span>, <span class="at">location =</span> <span class="st">&quot;plant&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a>  <span class="fu">pluck_water</span>(<span class="at">input_waters =</span> <span class="fu">c</span>(<span class="st">&quot;disinfected&quot;</span>), <span class="at">parameter =</span> <span class="fu">c</span>(<span class="st">&quot;chcl3&quot;</span>))</span>
+<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a></span>
+<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a><span class="fu">ggplot</span>(plot_unfit_dbps, <span class="fu">aes</span>(<span class="at">x =</span> fin_chcl3, <span class="at">y =</span> disinfected_chcl3)) <span class="sc">+</span></span>
+<span id="cb2-19"><a href="#cb2-19" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span></span>
+<span id="cb2-20"><a href="#cb2-20" tabindex="-1"></a>  <span class="fu">geom_abline</span>(<span class="at">slope =</span> <span class="dv">1</span>, <span class="at">intercept =</span> <span class="dv">0</span>, <span class="at">linetype =</span> <span class="st">&quot;dashed&quot;</span>, <span class="at">color =</span> <span class="st">&quot;red&quot;</span>) <span class="sc">+</span></span>
+<span id="cb2-21"><a href="#cb2-21" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb2-22"><a href="#cb2-22" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">&quot;Observed vs predicted chloroform&quot;</span>,</span>
+<span id="cb2-23"><a href="#cb2-23" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">&quot;Observed chloroform&quot;</span>,</span>
+<span id="cb2-24"><a href="#cb2-24" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">&quot;Default Predicted chloroform&quot;</span></span>
+<span id="cb2-25"><a href="#cb2-25" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb2-26"><a href="#cb2-26" tabindex="-1"></a>  <span class="fu">expand_limits</span>(<span class="at">x =</span> <span class="dv">0</span>, <span class="at">y =</span> <span class="dv">0</span>)</span></code></pre></div>
+<p><img role="img" src="data:image/png;base64,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" /><!-- --></p>
+<p>Now, we can fit custom coefficients to the facility’s DBP data. The
+following code builds off the code we’ve already used above and uses the
+default chcl3 coefficients as the initial parameters. Even if
+<code>optim()</code> doesn’t converge, the new coefficients it outputs
+should still provide a better fit than the defaults. Running
+<code>optim()</code> on this example should take approximately 2
+seconds, which is typical for an <code>optim()</code> function. If
+<code>optim()</code> is not constrained by a number of maximum
+iterations, it can take longer and parallel processing can be used to
+speed it up if the time is too long.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co"># Model we&#39;re trying to fit</span></span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>model_fn <span class="ot">&lt;-</span> <span class="cf">function</span>(params, data) {</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>  custom_coeff <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>    <span class="at">ID =</span> <span class="st">&quot;chcl3&quot;</span>, <span class="st">&quot;A&quot;</span> <span class="ot">=</span> params[<span class="dv">1</span>], <span class="st">&quot;a&quot;</span> <span class="ot">=</span> params[<span class="dv">2</span>], <span class="st">&quot;b&quot;</span> <span class="ot">=</span> params[<span class="dv">3</span>], <span class="st">&quot;c&quot;</span> <span class="ot">=</span> params[<span class="dv">4</span>], <span class="st">&quot;d&quot;</span> <span class="ot">=</span> params[<span class="dv">5</span>], <span class="st">&quot;e&quot;</span> <span class="ot">=</span> params[<span class="dv">6</span>],</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>    <span class="st">&quot;f&quot;</span> <span class="ot">=</span> params[<span class="dv">7</span>], <span class="at">ph_const =</span> <span class="cn">NA</span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>  )</span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a>  temp_data <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a>    <span class="fu">chemdose_dbp_df</span>(<span class="st">&quot;input&quot;</span>,</span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a>      <span class="at">cl2 =</span> <span class="dv">2</span>, <span class="at">time =</span> <span class="dv">8</span>, <span class="at">treatment =</span> <span class="st">&quot;raw&quot;</span>, <span class="at">cl_type =</span> <span class="st">&quot;chlorine&quot;</span>, <span class="at">location =</span> <span class="st">&quot;plant&quot;</span>,</span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a>      <span class="at">coeff =</span> custom_coeff</span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a>    ) <span class="sc">%&gt;%</span></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a>    <span class="fu">pluck_water</span>(<span class="at">input_waters =</span> <span class="fu">c</span>(<span class="st">&quot;disinfected&quot;</span>), <span class="at">parameter =</span> <span class="fu">c</span>(<span class="st">&quot;chcl3&quot;</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">diff =</span> (disinfected_chcl3 <span class="sc">-</span> fin_chcl3)<span class="sc">^</span><span class="dv">2</span>)</span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a>  <span class="fu">sum</span>(temp_data<span class="sc">$</span>diff)</span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a>}</span>
+<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a></span>
+<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a><span class="co"># optimize the coefficients</span></span>
+<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a></span>
+<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a>test <span class="ot">&lt;-</span> <span class="fu">optim</span>(<span class="at">par =</span> <span class="fu">c</span>(<span class="fl">6.237e-2</span>, <span class="fl">1.617</span>, <span class="sc">-</span><span class="fl">0.094</span>, <span class="sc">-</span><span class="fl">0.175</span>, <span class="fl">0.607</span>, <span class="fl">1.403</span>, <span class="fl">0.306</span>), <span class="at">fn =</span> model_fn, <span class="at">data =</span> dbp_data, <span class="at">control =</span> <span class="fu">list</span>(<span class="at">maxit =</span> <span class="dv">100</span>))</span>
+<span id="cb3-20"><a href="#cb3-20" tabindex="-1"></a>coeffs <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb3-21"><a href="#cb3-21" tabindex="-1"></a>  <span class="at">ID =</span> <span class="st">&quot;chcl3&quot;</span>,</span>
+<span id="cb3-22"><a href="#cb3-22" tabindex="-1"></a>  <span class="at">A =</span> test<span class="sc">$</span>par[<span class="dv">1</span>],</span>
+<span id="cb3-23"><a href="#cb3-23" tabindex="-1"></a>  <span class="at">a =</span> test<span class="sc">$</span>par[<span class="dv">2</span>],</span>
+<span id="cb3-24"><a href="#cb3-24" tabindex="-1"></a>  <span class="at">b =</span> test<span class="sc">$</span>par[<span class="dv">3</span>],</span>
+<span id="cb3-25"><a href="#cb3-25" tabindex="-1"></a>  <span class="at">c =</span> test<span class="sc">$</span>par[<span class="dv">4</span>],</span>
+<span id="cb3-26"><a href="#cb3-26" tabindex="-1"></a>  <span class="at">d =</span> test<span class="sc">$</span>par[<span class="dv">5</span>],</span>
+<span id="cb3-27"><a href="#cb3-27" tabindex="-1"></a>  <span class="at">e =</span> test<span class="sc">$</span>par[<span class="dv">6</span>],</span>
+<span id="cb3-28"><a href="#cb3-28" tabindex="-1"></a>  <span class="at">f =</span> test<span class="sc">$</span>par[<span class="dv">7</span>],</span>
+<span id="cb3-29"><a href="#cb3-29" tabindex="-1"></a>  <span class="at">ph_const =</span> <span class="cn">NA</span></span>
+<span id="cb3-30"><a href="#cb3-30" tabindex="-1"></a>)</span>
+<span id="cb3-31"><a href="#cb3-31" tabindex="-1"></a></span>
+<span id="cb3-32"><a href="#cb3-32" tabindex="-1"></a>dbp_data <span class="ot">&lt;-</span> dbp_data <span class="sc">%&gt;%</span></span>
+<span id="cb3-33"><a href="#cb3-33" tabindex="-1"></a>  <span class="fu">chemdose_dbp_df</span>(<span class="at">input_water =</span> <span class="st">&quot;input&quot;</span>, <span class="at">output_water =</span> <span class="st">&quot;coeff_disinfected&quot;</span>, <span class="at">cl2 =</span> <span class="dv">2</span>, <span class="at">time =</span> <span class="dv">8</span>, <span class="at">coeff =</span> coeffs) <span class="sc">%&gt;%</span></span>
+<span id="cb3-34"><a href="#cb3-34" tabindex="-1"></a>  <span class="fu">pluck_water</span>(<span class="at">input_waters =</span> <span class="fu">c</span>(<span class="st">&quot;coeff_disinfected&quot;</span>), <span class="at">parameter =</span> <span class="fu">c</span>(<span class="st">&quot;chcl3&quot;</span>))</span>
+<span id="cb3-35"><a href="#cb3-35" tabindex="-1"></a></span>
+<span id="cb3-36"><a href="#cb3-36" tabindex="-1"></a><span class="fu">ggplot</span>() <span class="sc">+</span></span>
+<span id="cb3-37"><a href="#cb3-37" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">data =</span> plot_unfit_dbps, <span class="fu">aes</span>(<span class="at">x =</span> fin_chcl3, <span class="at">y =</span> disinfected_chcl3, <span class="at">color =</span> <span class="st">&quot;Default coeffs&quot;</span>)) <span class="sc">+</span></span>
+<span id="cb3-38"><a href="#cb3-38" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">data =</span> dbp_data, <span class="fu">aes</span>(<span class="at">x =</span> fin_chcl3, <span class="at">y =</span> coeff_disinfected_chcl3, <span class="at">color =</span> <span class="st">&quot;Custom coeffs&quot;</span>)) <span class="sc">+</span></span>
+<span id="cb3-39"><a href="#cb3-39" tabindex="-1"></a>  <span class="fu">geom_abline</span>(<span class="at">slope =</span> <span class="dv">1</span>, <span class="at">intercept =</span> <span class="dv">0</span>, <span class="at">linetype =</span> <span class="st">&quot;dashed&quot;</span>, <span class="at">color =</span> <span class="st">&quot;red&quot;</span>) <span class="sc">+</span></span>
+<span id="cb3-40"><a href="#cb3-40" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb3-41"><a href="#cb3-41" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">&quot;Observed vs predicted chloroform&quot;</span>,</span>
+<span id="cb3-42"><a href="#cb3-42" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">&quot;Observed chloroform&quot;</span>,</span>
+<span id="cb3-43"><a href="#cb3-43" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">&quot;Predicted chloroform&quot;</span></span>
+<span id="cb3-44"><a href="#cb3-44" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb3-45"><a href="#cb3-45" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(</span>
+<span id="cb3-46"><a href="#cb3-46" tabindex="-1"></a>    <span class="at">name =</span> <span class="st">&quot;Prediction type&quot;</span>,</span>
+<span id="cb3-47"><a href="#cb3-47" tabindex="-1"></a>    <span class="at">breaks =</span> <span class="fu">c</span>(<span class="st">&quot;Default coeffs&quot;</span>, <span class="st">&quot;Custom coeffs&quot;</span>),</span>
+<span id="cb3-48"><a href="#cb3-48" tabindex="-1"></a>    <span class="at">values =</span> <span class="fu">c</span>(<span class="st">&quot;black&quot;</span>, <span class="st">&quot;blue&quot;</span>)</span>
+<span id="cb3-49"><a href="#cb3-49" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb3-50"><a href="#cb3-50" tabindex="-1"></a>  <span class="fu">expand_limits</span>(<span class="at">x =</span> <span class="dv">0</span>, <span class="at">y =</span> <span class="dv">0</span>)</span></code></pre></div>
+<p><img role="img" src="data:image/png;base64,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" /><!-- --></p>
+<p>Note that when inputting the new coefficients into
+<code>chemdose_dbp</code>, they must be formatted as a data frame with
+the proper column names: ID (corresponding to which DBP these
+coefficients apply to - for individual species, this will be its
+chemical formula), A, a, b, c, d, e, and f. This data frame can then be
+passed as an argument into <code>chemdose_dbp</code> and its helper
+function. For this example, we can visualize the facility DBP data,
+default DBP predictions, and custom DBP coefficient predictions to see
+that the predictions from <code>chemdose_dbp</code> with custom
+coefficients fits the real data a little better because it’s closer to
+the 1:1 line. This coefficient optimization process can be repeated for
+any DBPs whose concentrations do not fit the default coefficients well.
+Now that the facility has custom coefficients for chloroform, they can
+continue to use <code>chemdose_dbp</code> with coefficients that are
+personalized to the plant and make better predictions for their effluent
+chloroform.</p>
+</div>
+<div id="summary" class="section level2">
+<h2>Summary</h2>
+<p>In this tutorial, we learned how to use custom coefficients to
+predict DBP concentrations using the <code>coeff</code> argument in
+<code>chemdose_dbp</code>. These custom coefficients can be obtained by
+fitting using <code>optim()</code> and saved as a new data frame
+containing the personalized values. The <code>coeff</code> argument
+gives the user flexibility to create a model that best reflects their
+specific conditions while still using the tidywater package.</p>
+<p>For an introduction to the tidywater package, check out the intro and
+tidywater vignettes.</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

@@ -1,7 +1,7 @@
 Package: tidywater
 Type: Package
 Title: Water Quality Models for Drinking Water Treatment Processes
-Version: 0.9.0
+Version: 0.10.0
 Authors@R: c(person("Sierra", "Johnson", email = "sjohnson2@brwncald.com", role = c("aut", "cre")),
     person("Libby", "McKenna", email = "lmckenna@brwncald.com", role = c("aut")),
     person("Riley", "Mulhern", email = "rmulhern@brwncald.com", role = c("aut"), comment = c(ORCID = "0000-0001-6293-3672")),
@@ -27,15 +27,15 @@ License: Apache License (>= 2) | MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Imports: dplyr, tidyr, forcats, knitr, ggplot2, ggrepel, magrittr,
-        purrr, furrr, methods, rlang, deSolve
+        methods, rlang, deSolve, lifecycle
 RoxygenNote: 7.3.2
-Depends: R (>= 3.5)
-Suggests: rmarkdown, testthat (>= 3.0.0)
+Depends: R (>= 4.1)
+Suggests: rmarkdown, purrr, testthat (>= 3.0.0)
 Config/testthat/edition: 3
 VignetteBuilder: knitr
-Date: 2025-07-03
+Date: 2025-08-18
 NeedsCompilation: no
-Packaged: 2025-07-03 20:57:50 UTC; SJohnson2
+Packaged: 2025-08-24 16:58:13 UTC; SJohnson2
 Author: Sierra Johnson [aut, cre],
   Libby McKenna [aut],
   Riley Mulhern [aut] (ORCID: <https://orcid.org/0000-0001-6293-3672>),
@@ -49,4 +49,4 @@ Author: Sierra Johnson [aut, cre],
   Brown and Caldwell [fnd, cph]
 Maintainer: Sierra Johnson <sjohnson2@brwncald.com>
 Repository: CRAN
-Date/Publication: 2025-07-03 21:30:01 UTC
+Date/Publication: 2025-08-24 17:20:02 UTC
