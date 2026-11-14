@@ -15,7 +15,9 @@
 #' water must contain DOC or TOC value.
 #'
 #' @details The function will calculate DOC concentration by PAC adsorption in drinking water treatment.
-#' UV254 concentrations are predicted based on a linear relationship with DOC.
+#' UV254 concentrations are predicted based on a linear relationship with DOC, and are set to 0 when that
+#' relationship gives a negative value. For waters with DOC below 1.3 mg/L, the model is applied with the same
+#' percent removal as a 1.3 mg/L water. With a dose or time of 0, the input water is returned unchanged.
 #'
 #' @source See references list at: \url{https://github.com/BrownandCaldwell-Public/tidywater/wiki/References}
 #' @source CHO(2007)
@@ -36,10 +38,10 @@ pac_toc <- function(water, dose, time, type = "bituminous") {
   pactype <- NULL # Quiet RCMD check global variable note
   validate_water(water, c("doc"))
   if (missing(dose) | !is.numeric(dose) | dose < 0) {
-    stop("PAC dose must be specified as a non-negative number.")
+    cli::cli_abort("{.arg dose} must be a non-negative number.")
   }
   if (missing(time) | !is.numeric(time) | time < 0) {
-    stop("Reaction time must be specified as a non-negative number.")
+    cli::cli_abort("{.arg time} must be a non-negative number.")
   }
 
   doc <- water@doc
@@ -48,38 +50,46 @@ pac_toc <- function(water, dose, time, type = "bituminous") {
 
   # warnings and errors for bounds of PAC dose, time.
   # High dose/time not allowed because model form results in negative DOC.
-  if (dose < 5) warning("PAC dose is less than model bound of 5 mg/L")
-  if (dose > 30) stop("PAC model does not work for PAC dose >30. Adjust dose argument.")
+  if (dose < 5) {
+    tidywater_warn("{.arg dose} is below the model lower bound of 5 mg/L.")
+  }
+  if (dose > 30) {
+    cli::cli_abort("{.arg dose} exceeds the model upper bound of 30 mg/L. Adjust {.arg dose}.")
+  }
 
-  if (time < 10) warning("Time is less than model bounds of 10 min")
-  if (time > 60) stop("PAC model does not work for time > 60 mins. Adjust time argument.")
+  if (time < 10) {
+    tidywater_warn("{.arg time} is below the model lower bound of 10 min.")
+  }
+  if (time > 60) {
+    cli::cli_abort("{.arg time} exceeds the model upper bound of 60 min. Adjust {.arg time}.")
+  }
 
   # water warnings
   if (!is.na(water@toc) & water@toc < water@doc) {
-    warning("TOC of input water less than DOC. TOC will be set equal to DOC.")
+    tidywater_warn("TOC of input water is less than DOC; TOC will be set equal to DOC.")
   }
   if (is.na(water@toc)) {
-    warning("Input water TOC not specified. Output water TOC will be NA.")
+    tidywater_warn("Input water TOC not specified; output TOC will be {.val NA}.")
   }
 
   if (doc < 1.3 || doc > 5.4) {
-    warning("DOC concentration is outside the model bounds of 1.3 to 5.4 mg/L")
+    tidywater_warn("DOC is outside the model bounds (1.3 to 5.4 mg/L).")
   }
 
   # make case insensitive
   type <- tolower(type)
   if (!type %in% c("bituminous", "wood", "lignite")) {
-    stop("Invalid PAC type. Choose either 'bituminous', 'wood' or 'lignite'.")
+    cli::cli_abort("{.arg pac_type} must be {.val bituminous}, {.val wood}, or {.val lignite}.")
   }
 
   coeffs <- subset(tidywater::pactoccoeffs, pactype == type)
 
   if (dose == 0 | time == 0) {
-    warning("No PAC added or reaction time is zero. Final water will equal input water.")
-    remaining <- 1
+    tidywater_warn("No PAC added or reaction time is zero; final water will equal input water.")
+    return(water)
   } else if (doc < 1.3) {
     # Because of the form of the equation, DOC<1.3 results in negative DOC. Assume same % removal as DOC0=1.3
-    remaining <- (coeffs$A + coeffs$a * 1.3 - coeffs$b * dose - coeffs$c * time) / doc
+    remaining <- (coeffs$A + coeffs$a * 1.3 - coeffs$b * dose - coeffs$c * time) / 1.3
   } else {
     remaining <- (coeffs$A + coeffs$a * doc - coeffs$b * dose - coeffs$c * time) / doc
   }
@@ -90,7 +100,8 @@ pac_toc <- function(water, dose, time, type = "bituminous") {
   # UVA can be a good indicator to predict DOC concentration by PAC adsorption
   # can be predicted through relationship of DOC and UVA removal --> dimensionless unit (C/C0)
 
-  UVA <- .0376 * result - .041
+  # The linear fit crosses zero at DOC ~1.09 mg/L, so clamp to keep UV254 non-negative.
+  UVA <- max(.0376 * result - .041, 0)
 
   water@doc <- result
   water@toc <- result
@@ -119,8 +130,16 @@ pac_toc <- function(water, dose, time, type = "bituminous") {
 #' @returns `pac_toc_df` returns a data frame containing a water class column with updated DOC, TOC, and UV254
 #' concentrations. Optionally, it also adds columns for each of those slots individually.
 
-pac_toc_df <- function(df, input_water = "defined", output_water = "paced", pluck_cols = FALSE, water_prefix = TRUE,
-                       dose = "use_col", time = "use_col", type = "use_col") {
+pac_toc_df <- function(
+  df,
+  input_water = "defined",
+  output_water = "paced",
+  pluck_cols = FALSE,
+  water_prefix = TRUE,
+  dose = "use_col",
+  time = "use_col",
+  type = "use_col"
+) {
   validate_water_helpers(df, input_water)
   # This allows for the function to process unquoted column names without erroring
   dose <- tryCatch(dose, error = function(e) enquo(dose))
@@ -137,19 +156,33 @@ pac_toc_df <- function(df, input_water = "defined", output_water = "paced", pluc
   }
   # Add columns with default arguments
   defaults_added <- handle_defaults(
-    df, final_names,
+    df,
+    final_names,
     list(type = "bituminous")
   )
   df <- defaults_added$data
 
+warning_counts <- list()
+
   df[[output_water]] <- lapply(seq_len(nrow(df)), function(i) {
+    withCallingHandlers(
     pac_toc(
       water = df[[input_water]][[i]],
       dose = df[[final_names$dose]][i],
       time = df[[final_names$time]][i],
       type = df[[final_names$type]][i]
-    )
+    ),
+    warning = function(w) {
+      msg<-conditionMessage(w)
+      warning_counts[[msg]]<<-(warning_counts[[msg]] %||% 0) +1L
+      invokeRestart("muffleWarning")
+    }
+  )
   })
+
+  for (msg in names(warning_counts)) {
+    tidywater_warn("{msg} ({warning_counts[[msg]]} row{?s} affected.)")
+  }
 
   output <- df[, !names(df) %in% defaults_added$defaults_used]
 

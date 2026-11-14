@@ -28,11 +28,11 @@
 decarbonate_ph <- function(water, co2_removed) {
   validate_water(water, c("ph", "alk"))
   if (missing(co2_removed)) {
-    stop("No CO2 removal defined. Enter a value for co2_removed between 0 and 1.")
+    cli::cli_abort("No CO2 removal defined. Enter a value for {.arg co2_removed} between 0 and 1.")
   }
 
   if ((co2_removed > 1 | co2_removed < 0) & !is.na(co2_removed)) {
-    stop("CO2 removed should be a fraction of the total CO2, between 0 and 1.")
+    cli::cli_abort("{.arg co2_removed} should be a fraction between 0 and 1.")
   }
 
   co2_mol <- water@h2co3 * co2_removed
@@ -40,7 +40,6 @@ decarbonate_ph <- function(water, co2_removed) {
 
   chemdose_ph(water, co2 = co2_mg)
 }
-
 
 
 #' @rdname decarbonate_ph
@@ -64,9 +63,14 @@ decarbonate_ph <- function(water, co2_removed) {
 #' @returns `decarbonate_ph_df` returns a data frame containing a water class column with updated ph and alk (and pH dependent ions).
 #' Optionally, it also adds columns for each of those slots individually.
 
-decarbonate_ph_df <- function(df, input_water = "defined", output_water = "decarbonated",
-                              pluck_cols = FALSE, water_prefix = TRUE,
-                              co2_removed = "use_col") {
+decarbonate_ph_df <- function(
+  df,
+  input_water = "defined",
+  output_water = "decarbonated",
+  pluck_cols = FALSE,
+  water_prefix = TRUE,
+  co2_removed = "use_col"
+) {
   validate_water_helpers(df, input_water)
   # This allows for the function to process unquoted column names without erroring
   co2_removed <- tryCatch(co2_removed, error = function(e) enquo(co2_removed))
@@ -79,12 +83,23 @@ decarbonate_ph_df <- function(df, input_water = "defined", output_water = "decar
     df <- merge(df, as.data.frame(arguments$new_cols), by = NULL)
   }
 
+  warning_counts <- list()
   df[[output_water]] <- lapply(seq_len(nrow(df)), function(i) {
-    decarbonate_ph(
-      water = df[[input_water]][[i]],
-      co2_removed = df[[final_names$co2_removed]][i]
+    withCallingHandlers(
+      decarbonate_ph(
+        water = df[[input_water]][[i]],
+        co2_removed = df[[final_names$co2_removed]][i]
+      ),
+      warning = function(w) {
+        msg <- conditionMessage(w)
+        warning_counts[[msg]] <<- (warning_counts[[msg]] %||% 0) +1L
+        invokeRestart("muffleWarning")
+      }
     )
   })
+  for (msg in names(warning_counts)) {
+    tidywater_warn("{msg} ({warning_counts[[msg]]} row{?s} affected.)")
+  }
 
   output <- df
 

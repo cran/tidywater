@@ -12,6 +12,7 @@ chemdose_ph(
   h3po4 = 0,
   hno3 = 0,
   ch3cooh = 0,
+  citric = 0,
   co2 = 0,
   naoh = 0,
   caoh2 = 0,
@@ -30,6 +31,7 @@ chemdose_ph(
   ferricchloride = 0,
   ferricsulfate = 0,
   ach = 0,
+  pacl = 0,
   kmno4 = 0,
   naf = 0,
   na3po4 = 0,
@@ -43,6 +45,7 @@ chemdose_ph_df(
   na_to_zero = TRUE,
   pluck_cols = FALSE,
   water_prefix = TRUE,
+  keep_dose_cols = FALSE,
   hcl = "use_col",
   h2so4 = "use_col",
   h3po4 = "use_col",
@@ -66,6 +69,7 @@ chemdose_ph_df(
   ferricchloride = "use_col",
   ferricsulfate = "use_col",
   ach = "use_col",
+  pacl = "use_col",
   kmno4 = "use_col",
   naf = "use_col",
   na3po4 = "use_col",
@@ -83,7 +87,9 @@ chemdose_ph_df(
 
 \item{hno3}{Amount of nitric acid added in mg/L: HNO3 -> H + NO3}
 
-\item{ch3cooh}{Amount of acetic acid added in mg/L: CH3COOH -> H + CH3COO-}
+\item{ch3cooh}{Amount of acetic acid added in mg/L: CH3COOH -> H + CH3COO}
+
+\item{citric}{Amount of citric acid added in mg/L: C3H4OH(COOH)3 -> 3H+ C3H4OH(COO)3}
 
 \item{co2}{Amount of carbon dioxide added in mg/L: CO2 (gas) + H2O -> H2CO3*}
 
@@ -121,6 +127,8 @@ chemdose_ph_df(
 
 \item{ach}{Amount of aluminum chlorohydrate added in mg/L: Al2(OH)5Cl*2H2O + HCO3 -> 2Al(OH)3(am) + Cl + 2H2O + CO2}
 
+\item{pacl}{Amount of polyaluminum chloride added in mg/L as Al2O3 (assumed Cl:Al ratio = 0.9): Al2(OH)4.2Cl(1.8) + #HCO3 -> 2Al(OH)3(am) + 1.8Cl + #H2O + #CO2....}
+
 \item{kmno4}{Amount of potassium permanganate added in mg/L: KMnO4 -> K + MnO4}
 
 \item{naf}{Amount of sodium fluoride added in mg/L: NaF -> Na + F}
@@ -141,6 +149,8 @@ chemdose_ph_df(
 \item{pluck_cols}{Extract primary water slots modified by the function (ph, alk) into new numeric columns for easy access. Default to FALSE.}
 
 \item{water_prefix}{Append the output_water name to the start of the plucked columns. Default is TRUE.}
+
+\item{keep_dose_cols}{Option to keep the original chemical dose columns in the output data frame. Default is FALSE.}
 }
 \value{
 \code{chemdose_ph} returns a water class object with updated pH, alkalinity, and ions post-chemical addition.

@@ -48,8 +48,9 @@ overflow: visible;
 }
 </style>
 <style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
 pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
 pre > code.sourceCode > span:empty { height: 1.2em; }
 .sourceCode { overflow: visible; }
 code.sourceCode > span { color: inherit; text-decoration: inherit; }
@@ -60,7 +61,7 @@ div.sourceCode { overflow: auto; }
 }
 @media print {
 pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
 }
 pre.numberSource code
 { counter-reset: source-line 0; }
@@ -375,13 +376,10 @@ For example, <code>ph</code> must always be a number, and
 <p>To start, let’s create a blank water class and call it
 <code>empty_water.</code></p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>empty_water <span class="ot">&lt;-</span> <span class="fu">define_water</span>()</span>
-<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="co">#&gt; Warning in define_water(): Missing value for pH. Carbonate balance will not be</span></span>
-<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="co">#&gt; calculated.</span></span>
-<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="co">#&gt; Warning in define_water(): Missing value for alkalinity. Carbonate balance will</span></span>
-<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co">#&gt; not be calculated.</span></span>
-<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="co">#&gt; Warning in define_water(): Major ions missing and neither TDS or conductivity</span></span>
-<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="co">#&gt; entered. Ideal conditions will be assumed. Ionic strength will be set to NA and</span></span>
-<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="co">#&gt; activity coefficients in future calculations will be set to 1.</span></span></code></pre></div>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="co">#&gt; Warning: Missing value for `ph`; carbonate balance will not be calculated.</span></span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="co">#&gt; Warning: Missing value for `alk`; carbonate balance will not be calculated.</span></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="co">#&gt; Warning: Major ions, TDS, and conductivity are all missing; assuming ideal conditions.</span></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co">#&gt; Ionic strength will be &quot;NA&quot; and activity coefficients will be 1.</span></span></code></pre></div>
 <p>Notice that several warnings are generated about the water class.
 <code>define_water</code> will return warnings noting the assumptions
 and limitations of the water class depending on how much information you
@@ -426,7 +424,7 @@ water based on the alkalinity and pH.</p>
 <span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a>my_water<span class="sc">@</span>na</span>
 <span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a><span class="co">#&gt; [1] 0.00217488</span></span>
 <span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a>my_water<span class="sc">@</span>hco3</span>
-<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a><span class="co">#&gt; [1] 0.001992775</span></span></code></pre></div>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a><span class="co">#&gt; [1] 0.001992759</span></span></code></pre></div>
 <p>You can easily summarize your water quality using the
 <code>summarize_wq</code> function, which takes a water class object and
 exports an easy-to-read table of the water quality into the console.</p>
@@ -560,25 +558,22 @@ determined. We can remedy this in a few ways.</p>
 <span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a></span>
 <span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="co"># Input TDS or conductivity</span></span>
 <span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a>new_water1 <span class="ot">&lt;-</span> <span class="fu">define_water</span>(<span class="at">ph =</span> <span class="fl">7.5</span>, <span class="at">alk =</span> <span class="dv">100</span>, <span class="at">temp =</span> <span class="dv">20</span>, <span class="at">na =</span> <span class="dv">50</span>, <span class="at">ca =</span> <span class="dv">50</span>, <span class="at">tds =</span> <span class="dv">100</span>)</span>
-<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a><span class="co">#&gt; Warning in define_water(ph = 7.5, alk = 100, temp = 20, na = 50, ca = 50, :</span></span>
-<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a><span class="co">#&gt; Missing values for magnesium and total hardness but calcium supplied. Default</span></span>
-<span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a><span class="co">#&gt; ratio of 65% Ca2+ and 35% Mg2+ will be used.</span></span>
-<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a>new_water2 <span class="ot">&lt;-</span> <span class="fu">define_water</span>(<span class="at">ph =</span> <span class="fl">7.5</span>, <span class="at">alk =</span> <span class="dv">100</span>, <span class="at">temp =</span> <span class="dv">20</span>, <span class="at">na =</span> <span class="dv">50</span>, <span class="at">ca =</span> <span class="dv">50</span>, <span class="at">cond =</span> <span class="dv">200</span>)</span>
-<span id="cb10-12"><a href="#cb10-12" tabindex="-1"></a><span class="co">#&gt; Warning in define_water(ph = 7.5, alk = 100, temp = 20, na = 50, ca = 50, :</span></span>
-<span id="cb10-13"><a href="#cb10-13" tabindex="-1"></a><span class="co">#&gt; Missing values for magnesium and total hardness but calcium supplied. Default</span></span>
-<span id="cb10-14"><a href="#cb10-14" tabindex="-1"></a><span class="co">#&gt; ratio of 65% Ca2+ and 35% Mg2+ will be used.</span></span>
-<span id="cb10-15"><a href="#cb10-15" tabindex="-1"></a><span class="co"># Input more known ions</span></span>
-<span id="cb10-16"><a href="#cb10-16" tabindex="-1"></a>new_water3 <span class="ot">&lt;-</span> <span class="fu">define_water</span>(<span class="at">ph =</span> <span class="fl">7.5</span>, <span class="at">alk =</span> <span class="dv">100</span>, <span class="at">temp =</span> <span class="dv">20</span>, <span class="at">na =</span> <span class="dv">50</span>, <span class="at">ca =</span> <span class="dv">50</span>, <span class="at">so4 =</span> <span class="dv">100</span>)</span>
-<span id="cb10-17"><a href="#cb10-17" tabindex="-1"></a><span class="co">#&gt; Warning in define_water(ph = 7.5, alk = 100, temp = 20, na = 50, ca = 50, :</span></span>
-<span id="cb10-18"><a href="#cb10-18" tabindex="-1"></a><span class="co">#&gt; Missing values for magnesium and total hardness but calcium supplied. Default</span></span>
-<span id="cb10-19"><a href="#cb10-19" tabindex="-1"></a><span class="co">#&gt; ratio of 65% Ca2+ and 35% Mg2+ will be used.</span></span>
-<span id="cb10-20"><a href="#cb10-20" tabindex="-1"></a></span>
-<span id="cb10-21"><a href="#cb10-21" tabindex="-1"></a>new_water1<span class="sc">@</span>is</span>
-<span id="cb10-22"><a href="#cb10-22" tabindex="-1"></a><span class="co">#&gt; [1] 0.0025</span></span>
-<span id="cb10-23"><a href="#cb10-23" tabindex="-1"></a>new_water2<span class="sc">@</span>is</span>
-<span id="cb10-24"><a href="#cb10-24" tabindex="-1"></a><span class="co">#&gt; [1] 0.0032</span></span>
-<span id="cb10-25"><a href="#cb10-25" tabindex="-1"></a>new_water3<span class="sc">@</span>is</span>
-<span id="cb10-26"><a href="#cb10-26" tabindex="-1"></a><span class="co">#&gt; [1] 0.008009908</span></span></code></pre></div>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a><span class="co">#&gt; Warning: Missing values for `mg` and `tot_hard`; estimated from calcium using a 65%/35%</span></span>
+<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a><span class="co">#&gt; Ca/Mg split.</span></span>
+<span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a>new_water2 <span class="ot">&lt;-</span> <span class="fu">define_water</span>(<span class="at">ph =</span> <span class="fl">7.5</span>, <span class="at">alk =</span> <span class="dv">100</span>, <span class="at">temp =</span> <span class="dv">20</span>, <span class="at">na =</span> <span class="dv">50</span>, <span class="at">ca =</span> <span class="dv">50</span>, <span class="at">cond =</span> <span class="dv">200</span>)</span>
+<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a><span class="co">#&gt; Warning: Missing values for `mg` and `tot_hard`; estimated from calcium using a 65%/35%</span></span>
+<span id="cb10-12"><a href="#cb10-12" tabindex="-1"></a><span class="co">#&gt; Ca/Mg split.</span></span>
+<span id="cb10-13"><a href="#cb10-13" tabindex="-1"></a><span class="co"># Input more known ions</span></span>
+<span id="cb10-14"><a href="#cb10-14" tabindex="-1"></a>new_water3 <span class="ot">&lt;-</span> <span class="fu">define_water</span>(<span class="at">ph =</span> <span class="fl">7.5</span>, <span class="at">alk =</span> <span class="dv">100</span>, <span class="at">temp =</span> <span class="dv">20</span>, <span class="at">na =</span> <span class="dv">50</span>, <span class="at">ca =</span> <span class="dv">50</span>, <span class="at">so4 =</span> <span class="dv">100</span>)</span>
+<span id="cb10-15"><a href="#cb10-15" tabindex="-1"></a><span class="co">#&gt; Warning: Missing values for `mg` and `tot_hard`; estimated from calcium using a 65%/35%</span></span>
+<span id="cb10-16"><a href="#cb10-16" tabindex="-1"></a><span class="co">#&gt; Ca/Mg split.</span></span>
+<span id="cb10-17"><a href="#cb10-17" tabindex="-1"></a></span>
+<span id="cb10-18"><a href="#cb10-18" tabindex="-1"></a>new_water1<span class="sc">@</span>is</span>
+<span id="cb10-19"><a href="#cb10-19" tabindex="-1"></a><span class="co">#&gt; [1] 0.0025</span></span>
+<span id="cb10-20"><a href="#cb10-20" tabindex="-1"></a>new_water2<span class="sc">@</span>is</span>
+<span id="cb10-21"><a href="#cb10-21" tabindex="-1"></a><span class="co">#&gt; [1] 0.0032</span></span>
+<span id="cb10-22"><a href="#cb10-22" tabindex="-1"></a>new_water3<span class="sc">@</span>is</span>
+<span id="cb10-23"><a href="#cb10-23" tabindex="-1"></a><span class="co">#&gt; [1] 0.008009908</span></span></code></pre></div>
 <p>There are a couple of other assumptions that
 <code>define_water</code> makes to be able to set up the data for
 downstream <code>tidywater</code> functions. These include standard

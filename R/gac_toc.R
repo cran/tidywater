@@ -10,9 +10,12 @@
 #' "use_col" default looks for a column of the same name in the dataframe. The argument can be specified directly in the
 #' function instead or an unquoted column name can be provided.
 #'
-#' Water must contain DOC or TOC value.
+#' Water must contain a DOC value (or TOC, from which [define_water] estimates DOC).
 #'
-#' @details The function will calculate TOC concentration by GAC adsorption in drinking water treatment.
+#' @details The function will calculate DOC concentration by GAC adsorption in drinking water treatment.
+#' Both models were published in terms of TOC. GAC influent is normally coagulated and filtered, so particulate organic
+#' carbon is negligible and TOC = DOC; tidywater therefore applies the models to influent DOC.
+#' Effluent TOC is set equal to effluent DOC.
 #' UV254 concentrations are predicted based on a linear relationship with DOC from WTP Model Equation 5-93 and 5-94.
 #'
 #' @source See references list at: \url{https://github.com/BrownandCaldwell-Public/tidywater/wiki/References}
@@ -41,21 +44,21 @@ gac_toc <- function(water, ebct = 10, model = "Zachman", media_size = "12x40", b
   breakthrough_df <- gacrun_toc(water, ebct, model, media_size)
 
   if (missing(bed_vol)) {
-    stop("Bed volume is a required argument to predict final water quality. Use `gacrun_toc` for complete breakthrough curve.")
+    cli::cli_abort("{.arg bed_vol} is required to predict final water quality. Use {.fn gacrun_toc} for the complete breakthrough curve.")
   }
 
   bv_index <- which.min(abs(breakthrough_df$bv - bed_vol)) # retrieves index of bv that's closest to bv arg
   output_water <- water
-  output_water@toc <- breakthrough_df$x_norm[bv_index] * water@toc # calculate toc from predicted breakthrough curve
-  output_water@doc <- 0.95 * output_water@toc
+  output_water@doc <- breakthrough_df$x_norm[bv_index] * water@doc # calculate doc from predicted breakthrough curve
+  output_water@toc <- output_water@doc # post-GAC TOC = DOC
 
   # UV254 removal from WTP manual model:
   if (pretreat == "coag") {
-    # if only coagulation before gac, 0.1 < x_norm*toc_inf < 14.7
-    output_water@uv254 <- 0.0195 * output_water@toc - 0.0077
+    # if only coagulation before gac, 0.1 < x_norm*doc_inf < 14.7
+    output_water@uv254 <- 0.0195 * output_water@doc - 0.0077
   } else {
-    # if coagulation, ozonation, and biotreatment before gac, 0.1 < x_norm*toc_inf < 6.1
-    output_water@uv254 <- 0.0014 * output_water@toc - 0.00141
+    # if coagulation, ozonation, and biotreatment before gac, 0.1 < x_norm*doc_inf < 6.1
+    output_water@uv254 <- 0.0014 * output_water@doc - 0.00141
   }
 
   return(output_water)
@@ -94,8 +97,18 @@ gac_toc <- function(water, ebct = 10, model = "Zachman", media_size = "12x40", b
 #'
 #' @returns `gac_toc_df` returns a data frame containing a water class column with updated DOC, TOC, and UV254 slots
 
-gac_toc_df <- function(df, input_water = "defined", output_water = "gaced", model = "use_col", pluck_cols = FALSE, water_prefix = TRUE,
-                       media_size = "use_col", ebct = "use_col", bed_vol = "use_col", pretreat = "use_col") {
+gac_toc_df <- function(
+  df,
+  input_water = "defined",
+  output_water = "gaced",
+  model = "use_col",
+  pluck_cols = FALSE,
+  water_prefix = TRUE,
+  media_size = "use_col",
+  ebct = "use_col",
+  bed_vol = "use_col",
+  pretreat = "use_col"
+) {
   validate_water_helpers(df, input_water)
   # This allows for the function to process unquoted column names without erroring
   model <- tryCatch(model, error = function(e) enquo(model))
@@ -106,9 +119,13 @@ gac_toc_df <- function(df, input_water = "defined", output_water = "gaced", mode
 
   # This returns a dataframe of the input arguments and the correct column names for the others
   arguments <- construct_helper(
-    df, list(
-      "model" = model, "media_size" = media_size, "ebct" = ebct,
-      "bed_vol" = bed_vol, "pretreat" = pretreat
+    df,
+    list(
+      "model" = model,
+      "media_size" = media_size,
+      "ebct" = ebct,
+      "bed_vol" = bed_vol,
+      "pretreat" = pretreat
     )
   )
   final_names <- arguments$final_names
@@ -119,12 +136,16 @@ gac_toc_df <- function(df, input_water = "defined", output_water = "gaced", mode
   }
   # Add columns with default arguments
   defaults_added <- handle_defaults(
-    df, final_names,
+    df,
+    final_names,
     list(model = "Zachman", media_size = "12x40", ebct = "10", pretreat = "coag")
   )
   df <- defaults_added$data
 
+  warning_counts <- list()
+
   df[[output_water]] <- lapply(seq_len(nrow(df)), function(i) {
+    withCallingHandlers(
     gac_toc(
       water = df[[input_water]][[i]],
       model = df[[final_names$model]][i],
@@ -132,9 +153,17 @@ gac_toc_df <- function(df, input_water = "defined", output_water = "gaced", mode
       ebct = as.numeric(df[[final_names$ebct]][i]),
       bed_vol = df[[final_names$bed_vol]][i],
       pretreat = df[[final_names$pretreat]][i]
-    )
+    ),
+    warning = function(w) {
+      msg <- conditionMessage(w)
+      warning_counts[[msg]] <<- (warning_counts[[msg]] %||% 0) + 1L
+      invokeRestart("muffleWarning")
+    }
+  )
   })
-
+for (msg in names(warning_counts)) {
+    tidywater_warn("{msg} ({warning_counts[[msg]]} row{?s} affected.)")
+  }
   output <- df[, !names(df) %in% defaults_added$defaults_used]
 
   if (pluck_cols) {

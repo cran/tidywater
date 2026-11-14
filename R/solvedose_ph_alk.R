@@ -16,7 +16,6 @@
 #' @param target_ph The final pH to be achieved after the specified chemical is added.
 #' @param chemical The chemical to be added. Current supported chemicals include:
 #' acids: "hcl", "h2so4", "h3po4", "co2"; bases: "naoh", "na2co3", "nahco3", "caoh2", "mgoh2"
-#'
 #' @seealso [chemdose_ph], [solvedose_alk]
 #'
 #' @examples
@@ -31,65 +30,87 @@
 solvedose_ph <- function(water, target_ph, chemical) {
   validate_water(water, c("ph", "alk"))
   if (missing(target_ph)) {
-    stop("No target pH defined. Enter a target pH for the chemical dose.")
+    cli::cli_abort("No target pH defined. Enter a {.arg target_ph} for the chemical dose.")
   }
 
   if ((target_ph > 14 | target_ph < 1) & !is.na(target_ph)) {
-    stop("Target pH should be between 1-14.")
+    cli::cli_abort("{.arg target_ph} must be between 1 and 14.")
   }
 
-  if (!(chemical %in% c(
-    "hcl", "h2so4", "h3po4", "co2",
-    "naoh", "na2co3", "nahco3", "caoh2", "mgoh2"
-  ))) {
-    stop("Selected chemical addition not supported.")
+  if (
+    !(chemical %in%
+      c(
+        "hcl",
+        "h2so4",
+        "h3po4",
+        "co2",
+        "naoh",
+        "na2co3",
+        "nahco3",
+        "caoh2",
+        "mgoh2"
+      ))
+  ) {
+    cli::cli_abort("Selected chemical addition is not supported.")
   }
 
-  # This is the function to minimize
+  evaluated_waters <- new.env(parent = emptyenv())
+
+  evaluate_dose <- function(dose) {
+    dose_args <- stats::setNames(list(water, dose), c("water", chemical))
+    dosed_water <- suppressWarnings(do.call(chemdose_ph, dose_args))
+    assign(as.character(dose), dosed_water, envir = evaluated_waters)
+    dosed_water
+  }
+
+  # This is the function to minimize.
   match_ph <- function(root_dose, chemical, target_ph, water) {
-    hcl <- ifelse(chemical == "hcl", root_dose, 0)
-    h2so4 <- ifelse(chemical == "h2so4", root_dose, 0)
-    h3po4 <- ifelse(chemical == "h3po4", root_dose, 0)
-
-    naoh <- ifelse(chemical == "naoh", root_dose, 0)
-    na2co3 <- ifelse(chemical == "na2co3", root_dose, 0)
-    nahco3 <- ifelse(chemical == "nahco3", root_dose, 0)
-    caoh2 <- ifelse(chemical == "caoh2", root_dose, 0)
-    mgoh2 <- ifelse(chemical == "mgoh2", root_dose, 0)
-    co2 <- ifelse(chemical == "co2", root_dose, 0)
-
-    waterfin <- suppressWarnings(
-      chemdose_ph(water,
-        hcl = hcl, h2so4 = h2so4, h3po4 = h3po4,
-        naoh = naoh, na2co3 = na2co3, nahco3 = nahco3,
-        caoh2 = caoh2, mgoh2 = mgoh2, co2 = co2
-      )
-    )
-
-    phfin <- waterfin@ph
+    dosed_water <- evaluate_dose(root_dose)
 
     if (chemical %in% c("naoh", "na2co3", "nahco3", "caoh2", "mgoh2")) {
-      (phfin - target_ph)
+      dosed_water@ph - target_ph
     } else {
-      (target_ph - phfin)
+      target_ph - dosed_water@ph
     }
   }
 
   # Target pH can't be met
-  if ((chemical %in% c("naoh", "na2co3", "nahco3", "caoh2", "mgoh2") &
-    target_ph < water@ph) |
-    (chemical == "co2" & (target_ph < 6.5)) |
-    (chemical %in% c("hcl", "h2so4", "h3po4", "co2") &
-      target_ph > water@ph) |
-    is.na(target_ph)) {
-    warning("Target pH cannot be reached with selected chemical. NA returned.")
+  if (
+    (chemical %in% c("naoh", "na2co3", "nahco3", "caoh2", "mgoh2") & target_ph < water@ph) |
+      (chemical == "co2" & (target_ph < 6.5)) |
+      (chemical %in% c("hcl", "h2so4", "h3po4", "co2") & target_ph > water@ph) |
+      is.na(target_ph)
+  ) {
+    tidywater_warn("Target pH cannot be reached with the selected chemical; {.val NA} returned.")
     return(NA)
   } else {
-    chemdose <- stats::uniroot(match_ph,
+    chemdose <- stats::uniroot(
+      match_ph,
       interval = c(0, 200),
-      chemical = chemical, target_ph = target_ph, water = water,
+      chemical = chemical,
+      target_ph = target_ph,
+      water = water,
       extendInt = "up"
     )
+    dosed_water <- get(
+      as.character(chemdose$root),
+      envir = evaluated_waters,
+      inherits = FALSE
+    )
+
+    if (abs(chemdose$f.root) > 0.1) {
+      cli::cli_warn(
+        "solvedose_ph could not find a reliable dose to reach pH {target_ph}. The water may have insufficient buffering capacity; {.val NA} returned."
+      )
+      return(NA_real_)
+    }
+
+    if (dosed_water@alk < 0) {
+      cli::cli_warn(
+        "Target pH reached; final alkalinity is {round(dosed_water@alk, 1)} mg/L as CaCO3. Supplemental alkalinity may be required."
+      )
+    }
+
     round(chemdose$root, 1)
   }
 }
@@ -110,7 +131,7 @@ solvedose_ph <- function(water, target_ph, chemical) {
 #' @param water Source water of class "water" created by \code{\link{define_water}}
 #' @param target_alk The final alkalinity in mg/L as CaCO3 to be achieved after the specified chemical is added.
 #' @param chemical The chemical to be added. Current supported chemicals include:
-#' acids: "hcl", "h2so4", "h3po4", "co2", bases: "naoh", "na2co3", "nahco3", "caoh2", "mgoh2"
+#' acids: "hcl", "h2so4", "h3po4", bases: "naoh", "na2co3", "nahco3", "caoh2", "mgoh2"
 #'
 #' @seealso [solvedose_ph]
 #'
@@ -124,14 +145,24 @@ solvedose_ph <- function(water, target_ph, chemical) {
 solvedose_alk <- function(water, target_alk, chemical) {
   validate_water(water, c("ph", "alk"))
   if (missing(target_alk)) {
-    stop("No target alkalinity defined. Enter a target alkalinity (mg/L CaCO3) for the chemical dose.")
+    cli::cli_abort("No target alkalinity defined. Enter a {.arg target_alk} in mg/L as CaCO3.")
   }
 
-  if ((chemical %in% c(
-    "hcl", "h2so4", "h3po4", "co2",
-    "naoh", "na2co3", "nahco3", "caoh2", "mgoh2"
-  )) == FALSE) {
-    stop("Selected chemical addition not supported.")
+  if (
+    (chemical %in%
+      c(
+        "hcl",
+        "h2so4",
+        "h3po4",
+        "naoh",
+        "na2co3",
+        "nahco3",
+        "caoh2",
+        "mgoh2"
+      )) ==
+      FALSE
+  ) {
+    cli::cli_abort("Selected chemical addition is not supported.")
   }
 
   # This is the function to minimize
@@ -145,13 +176,18 @@ solvedose_alk <- function(water, target_alk, chemical) {
     nahco3 <- ifelse(chemical == "nahco3", root_dose, 0)
     caoh2 <- ifelse(chemical == "caoh2", root_dose, 0)
     mgoh2 <- ifelse(chemical == "mgoh2", root_dose, 0)
-    co2 <- ifelse(chemical == "co2", root_dose, 0)
 
     waterfin <- suppressWarnings(
-      chemdose_ph(water,
-        hcl = hcl, h2so4 = h2so4, h3po4 = h3po4,
-        naoh = naoh, na2co3 = na2co3, nahco3 = nahco3,
-        caoh2 = caoh2, mgoh2 = mgoh2, co2 = co2
+      chemdose_ph(
+        water,
+        hcl = hcl,
+        h2so4 = h2so4,
+        h3po4 = h3po4,
+        naoh = naoh,
+        na2co3 = na2co3,
+        nahco3 = nahco3,
+        caoh2 = caoh2,
+        mgoh2 = mgoh2
       )
     )
     alkfin <- waterfin@alk
@@ -160,15 +196,21 @@ solvedose_alk <- function(water, target_alk, chemical) {
   }
 
   # Target alkalinity can't be met
-  if ((chemical %in% c("naoh", "na2co3", "nahco3", "caoh2", "mgoh2") &
-    target_alk <= water@alk) |
-    (chemical %in% c("hcl", "h2so4", "h3po4", "co2") &
-      target_alk >= water@alk) |
-    is.na(target_alk)) {
-    warning("Target alkalinity cannot be reached with selected chemical. NA returned.")
+  if (
+    (chemical %in% c("naoh", "na2co3", "nahco3", "caoh2", "mgoh2") & target_alk <= water@alk) |
+      (chemical %in% c("hcl", "h2so4", "h3po4") & target_alk >= water@alk) |
+      is.na(target_alk)
+  ) {
+    tidywater_warn("Target alkalinity cannot be reached with the selected chemical; {.val NA} returned.")
     return(NA)
   } else {
-    chemdose <- stats::uniroot(match_alk, interval = c(0, 1000), chemical = chemical, target_alk = target_alk, water = water)
+    chemdose <- stats::uniroot(
+      match_alk,
+      interval = c(0, 1000),
+      chemical = chemical,
+      target_alk = target_alk,
+      water = water
+    )
     round(chemdose$root, 1)
   }
 }
@@ -188,7 +230,13 @@ solvedose_alk <- function(water, target_alk, chemical) {
 #' @export
 #' @returns `solvedose_ph_df` returns a data frame containing the original data frame and columns for target pH, chemical dosed, and required chemical dose.
 
-solvedose_ph_df <- function(df, input_water = "defined", output_column = "dose", target_ph = "use_col", chemical = "use_col") {
+solvedose_ph_df <- function(
+  df,
+  input_water = "defined",
+  output_column = "dose",
+  target_ph = "use_col",
+  chemical = "use_col"
+) {
   validate_water_helpers(df, input_water)
 
   # This allows for the function to process unquoted column names without erroring
@@ -202,13 +250,25 @@ solvedose_ph_df <- function(df, input_water = "defined", output_column = "dose",
     df <- merge(df, as.data.frame(arguments$new_cols), by = NULL)
   }
 
+  warning_counts <- list()
+
   df[[output_column]] <- sapply(seq_len(nrow(df)), function(i) {
-    solvedose_ph(
-      water = df[[input_water]][[i]],
-      chemical = df[[final_names$chemical]][i],
-      target_ph = df[[final_names$target_ph]][i]
+    withCallingHandlers(
+      solvedose_ph(
+        water = df[[input_water]][[i]],
+        chemical = df[[final_names$chemical]][i],
+        target_ph = df[[final_names$target_ph]][i]
+      ),
+      warning = function(w) {
+        msg <- conditionMessage(w)
+        warning_counts[[msg]] <<- (warning_counts[[msg]] %||% 0) + 1L
+        invokeRestart("muffleWarning")
+      }
     )
   })
+  for (msg in names(warning_counts)) {
+    tidywater_warn("{msg} ({warning_counts[[msg]]} row{?s} affected.)")
+  }
 
   return(df)
 }
@@ -230,7 +290,13 @@ solvedose_ph_df <- function(df, input_water = "defined", output_column = "dose",
 #'
 #' @returns `solvedose_alk_df` returns a data frame containing the original data frame and columns for target alkalinity, chemical dosed, and required chemical dose.
 
-solvedose_alk_df <- function(df, input_water = "defined", output_column = "dose", target_alk = "use_col", chemical = "use_col") {
+solvedose_alk_df <- function(
+  df,
+  input_water = "defined",
+  output_column = "dose",
+  target_alk = "use_col",
+  chemical = "use_col"
+) {
   validate_water_helpers(df, input_water)
 
   # This allows for the function to process unquoted column names without erroring
@@ -244,13 +310,26 @@ solvedose_alk_df <- function(df, input_water = "defined", output_column = "dose"
     df <- merge(df, as.data.frame(arguments$new_cols), by = NULL)
   }
 
+  warning_counts <- list()
+
   df[[output_column]] <- sapply(seq_len(nrow(df)), function(i) {
-    solvedose_alk(
-      water = df[[input_water]][[i]],
-      chemical = df[[final_names$chemical]][i],
-      target_alk = df[[final_names$target_alk]][i]
+    withCallingHandlers(
+      solvedose_alk(
+        water = df[[input_water]][[i]],
+        chemical = df[[final_names$chemical]][i],
+        target_alk = df[[final_names$target_alk]][i]
+      ),
+      warning = function(w) {
+        msg <- conditionMessage(w)
+        warning_counts[[msg]] <<- (warning_counts[[msg]] %||% 0) + 1L
+        invokeRestart("muffleWarning")
+      }
     )
   })
+
+ for (msg in names(warning_counts)) {
+    tidywater_warn("{msg} ({warning_counts[[msg]]} row{?s} affected.)")
+  }
 
   return(df)
 }

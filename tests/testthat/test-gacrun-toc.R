@@ -19,6 +19,16 @@ test_that("gacrun_toc returns error if inputs are misspelled or missing.", {
   expect_error(gacrun_toc(water3, model = "Zachman"))
 })
 
+test_that("gacrun_toc Zachman curve matches Zachman and Summers (2010).", {
+  # Model 2 (12x40, 20 min EBCT) at the Fig. 3 median water: influent 3.4 mg/L, pH 7.9.
+  # Table 2: BVx = A / C0 / pH^1.5, A = 164x^2 - 1938x + 245064. BV50 = 558164 / 3.4 / 7.9^1.5 = 7393.
+  # Values are consistent with the Fig. 3 curve for this water (read graphically).
+  water <- suppressWarnings(define_water(ph = 7.9, toc = 3.4, doc = 3.4))
+  curve <- gacrun_toc(water, ebct = 20, model = "Zachman", media_size = "12x40")
+
+  expect_equal(curve$bv[curve$x_norm %in% c(0.2, 0.5, 0.7)], c(3601.6, 7393.4, 12093.5), tolerance = 1e-5)
+})
+
 test_that("gacrun_toc defaults to correct values.", {
   water <- suppressWarnings(define_water(ph = 7.5, toc = 3.5))
 
@@ -52,15 +62,9 @@ test_that("gacrun_toc works.", {
 
 test_that("gacrun_toc_df outputs are the same as base function, gacrun_toc", {
   testthat::skip_on_cran()
-  water0 <- define_water(7.9, 20, 50,
-    tds = 200,
-    toc = 2, doc = 1.8, uv254 = 0.05
-  )
+  water0 <- define_water(7.9, 20, 50, tds = 200, toc = 2, doc = 1.8, uv254 = 0.05)
 
-  water1 <- define_water(8.5, 25, 80,
-    tds = 100,
-    toc = 3, doc = 2.8, uv254 = .08
-  )
+  water1 <- define_water(8.5, 25, 80, tds = 100, toc = 3, doc = 2.8, uv254 = .08)
 
   water2 <- water0 %>%
     gacrun_toc(model = "WTP")
@@ -79,14 +83,16 @@ test_that("gacrun_toc_df outputs are the same as base function, gacrun_toc", {
 # Test that output is a data frame with the correct number of columns
 test_that("gacrun_toc_df output is data frame", {
   testthat::skip_on_cran()
-  water0 <- suppressWarnings(water_df %>%
-    define_water_df("raw") %>%
-    mutate(
-      model = "WTP",
-      media_size = "12x40",
-      ebct = 10,
-      bvs = list(c(2000, 20000, 100))
-    ))
+  water0 <- suppressWarnings(
+    water_df %>%
+      define_water_df("raw") %>%
+      mutate(
+        model = "WTP",
+        media_size = "12x40",
+        ebct = 10,
+        bvs = list(c(2000, 20000, 100))
+      )
+  )
 
   water1 <- water0 %>%
     gacrun_toc_df(input_water = "raw") %>%

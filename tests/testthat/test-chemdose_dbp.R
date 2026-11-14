@@ -30,8 +30,10 @@ test_that("chemdose_dbp warns when inputs are out of model range", {
 
 test_that("chemdose_dbp warns about chloramines", {
   water1 <- suppressWarnings(define_water(ph = 7.5, temp = 20, toc = 3.5, uv254 = 0.1, br = 50, tot_nh3 = 3))
-  water2 <- suppressWarnings(define_water(ph = 7.5, temp = 20, alk = 30, toc = 2, uv254 = 0.01, br = 30) %>%
-    chemdose_ph(nh42so4 = 3))
+  water2 <- suppressWarnings(
+    define_water(ph = 7.5, temp = 20, alk = 30, toc = 2, uv254 = 0.01, br = 30) %>%
+      chemdose_ph(nh42so4 = 3)
+  )
 
   expect_warning(chemdose_dbp(water1, cl2 = 2, time = 8), "breakpoint+")
   expect_warning(chemdose_dbp(water2, cl2 = 4, time = 8), "breakpoint+")
@@ -83,6 +85,21 @@ test_that("users can provide their own dbp coefficients.", {
   expect_equal(round(water2@chcl3, 2), 58.78)
 })
 
+test_that("chemdose_dbp accepts a custom coeff table with more than one row.", {
+  coeff <- subset(dbpcoeffs, treatment == "coag")[1:2, ]
+  water1 <- suppressWarnings(define_water(ph = 7.5, temp = 20, toc = 3.5, uv254 = 0.1, br = 50))
+
+  water2 <- suppressWarnings(chemdose_dbp(water1, cl2 = 3, time = 24, treatment = "coag"))
+  water3 <- suppressWarnings(chemdose_dbp(water1, cl2 = 3, time = 24, treatment = "coag", coeff = coeff))
+
+  # default coefficients passed as custom coeff give the same result
+  expect_equal(water3@tthm, water2@tthm)
+  expect_equal(water3@chcl3, water2@chcl3)
+
+  coeff$ID[2] <- "oops"
+  expect_error(chemdose_dbp(water1, cl2 = 3, time = 24, treatment = "coag", coeff = coeff), "must match")
+})
+
 test_that("chemdose_dbp works when correction is T/F", {
   water1 <- suppressWarnings(define_water(ph = 7.5, temp = 20, toc = 3.5, uv254 = 0.1, br = 50)) %>%
     chemdose_dbp(cl2 = 2, time = 8)
@@ -101,11 +118,23 @@ test_that("chemdose_dbp works when correction is T/F", {
 
 test_that("chemdose_dbp_df outputs are the same as base function, chemdose_dbp", {
   testthat::skip_on_cran()
-  water0 <- define_water(7.9, 20, 50,
-    tot_hard = 50, ca = 13, mg = 4,
-    na = 20, k = 20, cl = 30, so4 = 20,
-    tds = 200, cond = 100,
-    toc = 2, doc = 1.8, uv254 = 0.05, br = 50
+  water0 <- define_water(
+    7.9,
+    20,
+    50,
+    tot_hard = 50,
+    ca = 13,
+    mg = 4,
+    na = 20,
+    k = 20,
+    cl = 30,
+    so4 = 20,
+    tds = 200,
+    cond = 100,
+    toc = 2,
+    doc = 1.8,
+    uv254 = 0.05,
+    br = 50
   )
   water1 <- water0 %>%
     chemdose_dbp(cl2 = 10, time = 8)
@@ -117,13 +146,15 @@ test_that("chemdose_dbp_df outputs are the same as base function, chemdose_dbp",
 
   times <- data.frame(time = seq(4, 10, 2))
   treatment <- data.frame(Location = c("raw", "coag", "gac"))
-  water3 <- suppressWarnings(water_df[1, ] %>%
-    mutate(br = 50) %>%
-    define_water_df() %>%
-    merge(times) %>%
-    merge(treatment) %>%
-    chemdose_dbp_df(cl2 = 10, treatment = Location, output_water = "chlor") %>%
-    pluck_water("chlor", c("tthm", "haa5")))
+  water3 <- suppressWarnings(
+    water_df[1, ] %>%
+      mutate(br = 50) %>%
+      define_water_df() %>%
+      merge(times) %>%
+      merge(treatment) %>%
+      chemdose_dbp_df(cl2 = 10, treatment = Location, output_water = "chlor") %>%
+      pluck_water("chlor", c("tthm", "haa5"))
+  )
 
   water4 <- suppressWarnings(chemdose_dbp(water0, cl2 = 10, time = 8, treatment = "coag"))
   water5 <- suppressWarnings(chemdose_dbp(water0, cl2 = 10, time = 4, treatment = "gac"))
@@ -148,21 +179,25 @@ test_that("chemdose_dbp_df outputs are the same as base function, chemdose_dbp",
 
 test_that("chemdose_dbp_df output is list of water class objects, and can handle an ouput_water arg", {
   testthat::skip_on_cran()
-  water1 <- suppressWarnings(water_df[1, ] %>%
-    mutate(br = 60) %>%
-    define_water_df() %>%
-    chemdose_dbp_df(time = 8, cl2 = 4))
+  water1 <- suppressWarnings(
+    water_df[1, ] %>%
+      mutate(br = 60) %>%
+      define_water_df() %>%
+      chemdose_dbp_df(time = 8, cl2 = 4)
+  )
 
   water2 <- purrr::pluck(water1, "disinfected", 1)
 
-  water3 <- suppressWarnings(water_df %>%
-    mutate(br = 60) %>%
-    define_water_df() %>%
-    mutate(
-      cl2 = 4,
-      time = 8
-    ) %>%
-    chemdose_dbp_df(output_water = "diff_name"))
+  water3 <- suppressWarnings(
+    water_df %>%
+      mutate(br = 60) %>%
+      define_water_df() %>%
+      mutate(
+        cl2 = 4,
+        time = 8
+      ) %>%
+      chemdose_dbp_df(output_water = "diff_name")
+  )
 
   expect_s4_class(water2, "water") # check class
   expect_true(exists("diff_name", water3)) # check if output_water arg works
@@ -172,28 +207,34 @@ test_that("chemdose_dbp_df output is list of water class objects, and can handle
 
 test_that("chemdose_dbp_df can use a column or function argument for chemical dose", {
   testthat::skip_on_cran()
-  water1 <- suppressWarnings(water_df[1, ] %>%
-    mutate(br = 80) %>%
-    define_water_df() %>%
-    chemdose_dbp_df(time = 120, cl2 = 10, pluck_cols = TRUE))
+  water1 <- suppressWarnings(
+    water_df[1, ] %>%
+      mutate(br = 80) %>%
+      define_water_df() %>%
+      chemdose_dbp_df(time = 120, cl2 = 10, pluck_cols = TRUE)
+  )
 
-  water2 <- suppressWarnings(water_df[1, ] %>%
-    mutate(br = 80) %>%
-    define_water_df() %>%
-    mutate(
-      time = 120,
-      cl2 = 10
-    ) %>%
-    chemdose_dbp_df(pluck_cols = TRUE))
+  water2 <- suppressWarnings(
+    water_df[1, ] %>%
+      mutate(br = 80) %>%
+      define_water_df() %>%
+      mutate(
+        time = 120,
+        cl2 = 10
+      ) %>%
+      chemdose_dbp_df(pluck_cols = TRUE)
+  )
 
   # test that pluck_cols does the same as pluck_Water
-  water3 <- suppressWarnings(water_df %>%
-    slice(1) %>%
-    mutate(br = 80) %>%
-    define_water_df() %>%
-    mutate(time = 120) %>%
-    chemdose_dbp_df(cl2 = 10) %>%
-    pluck_water("disinfected", c("tthm", "haa5")))
+  water3 <- suppressWarnings(
+    water_df %>%
+      slice(1) %>%
+      mutate(br = 80) %>%
+      define_water_df() %>%
+      mutate(time = 120) %>%
+      chemdose_dbp_df(cl2 = 10) %>%
+      pluck_water("disinfected", c("tthm", "haa5"))
+  )
 
   expect_equal(water1$disinfected_tthm, water2$disinfected_tthm) # test different ways to input args
   expect_equal(water1$disinfected_haa5, water2$disinfected_haa5)
@@ -208,12 +249,16 @@ test_that("chemdose_dbp_df errors with argument + column for same param", {
   water <- water_df %>%
     mutate(br = 80) %>%
     define_water_df("water")
-  expect_error(water %>%
-    mutate(cl2 = 5) %>%
-    chemdose_dbp_df(input_water = "water", time = 120, cl2 = 10))
-  expect_error(water %>%
-    mutate(time = 5) %>%
-    chemdose_dbp_df(input_water = "water", time = 120, cl2 = 10))
+  expect_error(
+    water %>%
+      mutate(cl2 = 5) %>%
+      chemdose_dbp_df(input_water = "water", time = 120, cl2 = 10)
+  )
+  expect_error(
+    water %>%
+      mutate(time = 5) %>%
+      chemdose_dbp_df(input_water = "water", time = 120, cl2 = 10)
+  )
 
   times <- data.frame(time = seq(4, 10, 2))
   water1 <- water_df %>%
@@ -265,4 +310,48 @@ test_that("users can provide their own dbp coefficients to chemdose_dbp_df.", {
   expect_equal(water1$disinfected_tthm, water2$disinfected_tthm) # no custom coeff inputted for tthm
   expect_false(identical(water1$disinfected_chcl3, water2$disinfected_chcl3))
   expect_false(any(is.na(water2$disinfected_chcl3)) || identical(water2$disinfected_chcl3, 0))
+})
+
+
+test_that("are previous columns named cl 2 dropped when keep dose cols = false", {
+
+  #setup test water
+  water0<-suppressWarnings(water_df |> 
+    slice(1) |> 
+    mutate(br = 80) |>
+    define_water_df()) 
+    
+
+    dosedwater<-water0 |> 
+      chemdose_dbp_df( cl2=5,  time = 10, pluck_cols = FALSE, keep_dose_cols = FALSE)
+  
+
+    #check normal functionality 
+  expect_equal(ncol(dosedwater), 4)
+
+    dosedwater<-water0 |> 
+      chemdose_dbp_df( cl2=5,time = 10, pluck_cols = FALSE, keep_dose_cols = TRUE)
+  
+
+    #check normal functionality 
+  expect_equal(ncol(dosedwater), 5)
+
+# check how function handles cl cols that are there before 
+  
+  water0<-water0 |> 
+    mutate(cl2 = 10)
+
+  dosedwater<-expect_error(water0 |>  
+    chemdose_dbp_df( cl2=5,  time = 10, pluck_cols = FALSE, keep_dose_cols = FALSE))
+
+  dosedwater1<-water0 |> 
+    chemdose_dbp_df( time = 10, pluck_cols = FALSE, keep_dose_cols = TRUE)
+
+  dosedwater2<-water0 |> 
+    chemdose_dbp_df( time = 10, pluck_cols = FALSE, keep_dose_cols = FALSE)
+
+  expect_equal(ncol(dosedwater1), 5)
+  expect_equal(ncol(dosedwater2), 4) # cl2 cols should be dropped, but time should still be there
+  # previously named cl2 cols are expected to throw a warning when called additionally in chemdose_dbp_df and 
+  # are expected to be droped when keep_dose_cols = FALSE, even if they were there before
 })

@@ -9,9 +9,11 @@
 #' "use_col" default looks for a column of the same name in the dataframe. The argument can be specified directly in the
 #' function instead or an unquoted column name can be provided.
 #'
-#' Water must contain DOC or TOC value.
+#' Water must contain a DOC value (or TOC, from which [define_water] estimates DOC).
 #'
 #' @details The function will calculate bed volume required to achieve given target DOC values.
+#' Both models were published in terms of TOC. GAC influent is normally coagulated and filtered, so particulate organic
+#' carbon is negligible and TOC = DOC; tidywater therefore applies the models to influent DOC.
 #'
 #'
 #' @source See references list at: \url{https://github.com/BrownandCaldwell-Public/tidywater/wiki/References}
@@ -22,7 +24,7 @@
 #' @param ebct Empty bed contact time (minutes). Model results are valid for 10 or 20 minutes. Default is 10 minutes.
 #' @param model Specifies which GAC TOC removal model to apply. Options are Zachman and WTP.
 #' @param media_size Size of GAC filter mesh. Model includes 12x40 and 8x30 mesh sizes. Default is 12x40.
-#' @param target_doc Optional input to set a target DOC concentration and calculate necessary bed volume
+#' @param target_doc Target effluent DOC concentration (mg/L). Can be a vector to return a bed volume for each target.
 #'
 #' @examples
 #' water <- define_water(ph = 8, toc = 2.5, uv254 = .05, doc = 1.5)
@@ -38,15 +40,19 @@ gacbv_toc <- function(water, ebct = 10, model = "Zachman", media_size = "12x40",
   breakthrough_df <- gacrun_toc(water, ebct, model, media_size)
 
   if (missing(target_doc)) {
-    stop("Target DOC is a required argument to predict bed volumes.")
+    cli::cli_abort("{.arg target_doc} is required to predict bed volumes.")
   }
 
-  if (any((target_doc / water@doc) < min(breakthrough_df$x_norm) |
-    (target_doc / water@doc) > max(breakthrough_df$x_norm))) {
-    stop("Target DOC is outside of range for the chosen model. Use `gacrun_toc` for complete breakthrough curve.")
+  if (
+    any(
+      (target_doc / water@doc) < min(breakthrough_df$x_norm) |
+        (target_doc / water@doc) > max(breakthrough_df$x_norm)
+    )
+  ) {
+    cli::cli_abort("{.arg target_doc} is outside the range for the chosen model. Use {.fn gacrun_toc} for the complete breakthrough curve.")
   }
 
-  x_index <- sapply(target_doc * water@doc, function(x) which.min(abs(breakthrough_df$x_norm - x))) # should work with input of multiple target DOCs
+  x_index <- sapply(target_doc / water@doc, function(x) which.min(abs(breakthrough_df$x_norm - x))) # should work with input of multiple target DOCs
   output_bv <- data.frame(bed_volume = breakthrough_df$bv[x_index])
 
   return(output_bv)
@@ -78,8 +84,15 @@ gacbv_toc <- function(water, ebct = 10, model = "Zachman", media_size = "12x40",
 #' @returns `gacbv_toc_df` returns a data frame with columns for bed volumes.
 #'
 
-gacbv_toc_df <- function(df, input_water = "defined", model = "use_col",
-                         media_size = "use_col", ebct = "use_col", target_doc = "use_col", water_prefix = TRUE) {
+gacbv_toc_df <- function(
+  df,
+  input_water = "defined",
+  model = "use_col",
+  media_size = "use_col",
+  ebct = "use_col",
+  target_doc = "use_col",
+  water_prefix = TRUE
+) {
   validate_water_helpers(df, input_water)
   bed_volume <- NULL # Quiet RCMD check global variable note
 
@@ -90,7 +103,10 @@ gacbv_toc_df <- function(df, input_water = "defined", model = "use_col",
   target_doc <- tryCatch(target_doc, error = function(e) enquo(target_doc))
 
   # This returns a dataframe of the input arguments and the correct column names for the others
-  arguments <- construct_helper(df, all_args = list("model" = model, "media_size" = media_size, "ebct" = ebct, "target_doc" = target_doc))
+  arguments <- construct_helper(
+    df,
+    all_args = list("model" = model, "media_size" = media_size, "ebct" = ebct, "target_doc" = target_doc)
+  )
   final_names <- arguments$final_names
 
   # Only join inputs if they aren't in existing dataframe
@@ -99,21 +115,34 @@ gacbv_toc_df <- function(df, input_water = "defined", model = "use_col",
   }
   # Add columns with default arguments
   defaults_added <- handle_defaults(
-    df, final_names,
+    df,
+    final_names,
     list(model = "Zachman", media_size = "12x40", ebct = "10")
   )
   df <- defaults_added$data
 
-  bv_df <- do.call(rbind, lapply(seq_len(nrow(df)), function(i) {
-    gacbv_toc(
-      water = df[[input_water]][[i]],
-      model = df[[final_names$model]][i],
-      media_size = df[[final_names$media_size]][i],
-      ebct = as.numeric(df[[final_names$ebct]][i]),
-      target_doc = df[[final_names$target_doc]][i]
-    )
-  }))
-
+  warning_counts <- list()
+  bv_df <- do.call(
+    rbind,
+    lapply(seq_len(nrow(df)), function(i) {
+       withCallingHandlers(
+      gacbv_toc(
+        water = df[[input_water]][[i]],
+        model = df[[final_names$model]][i],
+        media_size = df[[final_names$media_size]][i],
+        ebct = as.numeric(df[[final_names$ebct]][i]),
+        target_doc = df[[final_names$target_doc]][i]
+      ),
+      warning = function(w) {
+        msg <- conditionMessage(w)
+        warning_counts[[msg]] <<- (warning_counts[[msg]] %||% 0) +1L
+        invokeRestart("muffleWarning")
+      })
+    })
+  )
+  for (msg in names(warning_counts)) {
+    tidywater_warn("{msg} ({warning_counts[[msg]]} row{?s} affected.)")
+  }
   # bv_df <- df[, !names(df) %in% defaults_added$defaults_used]
 
   if (water_prefix) {

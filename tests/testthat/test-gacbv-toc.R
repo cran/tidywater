@@ -37,10 +37,32 @@ test_that("gacbv_toc works.", {
   bv3 <- gacbv_toc(water, model = "WTP", target_doc = c(0.6, 0.8, 1))
 
   expect_true(is.data.frame(bv1))
-  expect_equal(bv1$bed_volume, 20000)
+  expect_equal(bv1$bed_volume, 3300)
   expect_false(identical(bv1$bed_volume, bv2$bed_volume))
   expect_true(is.data.frame(bv3))
   expect_error(gacbv_toc(water, target_doc = 0))
+})
+
+test_that("gacbv_toc bed volume increases with target_doc.", {
+  water <- define_water(ph = 7.5, alk = 80, tds = 250, toc = 3, doc = 2.85, uv254 = 0.08)
+
+  bv_wtp <- gacbv_toc(water, model = "WTP", target_doc = c(0.8, 1, 1.5))$bed_volume
+  bv_zach <- gacbv_toc(water, model = "Zachman", media_size = "12x40", target_doc = c(1, 1.5))$bed_volume
+
+  expect_length(unique(bv_wtp), 3)
+  expect_true(all(diff(bv_wtp) > 0))
+  expect_length(unique(bv_zach), 2)
+  expect_true(all(diff(bv_zach) > 0))
+})
+
+test_that("gacbv_toc returns the bed volume where C/C0 matches target_doc / doc on the gacrun_toc curve.", {
+  water <- define_water(ph = 7.5, alk = 80, tds = 250, toc = 3, doc = 2.85, uv254 = 0.08)
+
+  curve <- gacrun_toc(water, model = "WTP")
+  bv <- gacbv_toc(water, model = "WTP", target_doc = 1)$bed_volume
+
+  expect_equal(curve$x_norm[curve$bv == bv], 1 / water@doc, tolerance = 0.02)
+  expect_true(bv < max(curve$bv)) # not simply the end of the breakthrough curve
 })
 
 ################################################################################*
@@ -49,11 +71,22 @@ test_that("gacbv_toc works.", {
 
 test_that("gacbv_toc_df outputs are the same as base function, gacbv_toc", {
   testthat::skip_on_cran()
-  water0 <- define_water(7.9, 20, 50,
-    tot_hard = 50, ca = 13, mg = 4,
-    na = 20, k = 20, cl = 30, so4 = 20,
-    tds = 200, cond = 100,
-    toc = 2, doc = 1.8, uv254 = 0.05
+  water0 <- define_water(
+    7.9,
+    20,
+    50,
+    tot_hard = 50,
+    ca = 13,
+    mg = 4,
+    na = 20,
+    k = 20,
+    cl = 30,
+    so4 = 20,
+    tds = 200,
+    cond = 100,
+    toc = 2,
+    doc = 1.8,
+    uv254 = 0.05
   )
 
   water1 <- water0 %>%
@@ -70,14 +103,16 @@ test_that("gacbv_toc_df outputs are the same as base function, gacbv_toc", {
 # Test that output is a data frame with the correct number of columns
 test_that("gacbv_toc_df output is data frame", {
   testthat::skip_on_cran()
-  water0 <- suppressWarnings(water_df[1, ] %>%
-    define_water_df("raw") %>%
-    transform(
-      model = "Zachman",
-      media_size = "12x40",
-      ebct = 10,
-      target_doc = 0.6
-    ))
+  water0 <- suppressWarnings(
+    water_df[1, ] %>%
+      define_water_df("raw") %>%
+      transform(
+        model = "Zachman",
+        media_size = "12x40",
+        ebct = 10,
+        target_doc = 0.6
+      )
+  )
 
   water1 <- water0 %>%
     gacbv_toc_df(input_water = "raw")

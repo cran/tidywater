@@ -2,15 +2,17 @@
 #'
 #' @title Calculate TOC Concentration in GAC system
 #'
-#' @description Returns a data frame with a breakthrough curve based on the TOC concentration after passing through GAC treatment, according to the model developed in
+#' @description Returns a data frame with a breakthrough curve based on the DOC concentration after passing through GAC treatment, according to the model developed in
 #' "Modeling TOC Breakthrough in Granular Activated Carbon Adsorbers" by Zachman and Summers (2010), or the USEPA WTP Model v. 2.0 Manual (2001).
 #'
-#' Water must contain DOC or TOC value.
+#' Water must contain a DOC value (or TOC, from which [define_water] estimates DOC).
 #'
-#' @details The function will calculate bed volumes and normalized TOC breakthrough (TOCeff/TOCinf) given model type.
+#' @details The function will calculate bed volumes and normalized DOC breakthrough (DOCeff/DOCinf) given model type.
 #' Both models were developed using data sets from bench-scale GAC treatment studies using bituminous GAC and EBCTs of either 10 or 20 minutes.
 #' The specific mesh sizes used to develop the Zachman and Summers model were 12x40 or 8x30.
-#' The models were also developed using influent pH and TOC between specific ranges. Refer to the papers included in the references for more details.
+#' The models were also developed using influent pH and DOC between specific ranges. Refer to the papers included in the references for more details.
+#' Both models were published in terms of TOC. GAC influent is normally coagulated and filtered, so particulate organic
+#' carbon is negligible and TOC = DOC; tidywater therefore applies the models to influent DOC.
 #'
 #' @source See references list at: \url{https://github.com/BrownandCaldwell-Public/tidywater/wiki/References}
 #' @source Zachman and Summers (2010)
@@ -28,7 +30,7 @@
 #'
 #' @export
 #'
-#' @returns `gacrun_toc` returns a data frame with bed volumes and breakthrough TOC values.
+#' @returns `gacrun_toc` returns a data frame with bed volumes and normalized breakthrough DOC values (`x_norm`, DOCeff/DOCinf).
 #'
 
 gacrun_toc <- function(water, ebct = 10, model = "Zachman", media_size = "12x40", bvs = c(2000, 20000, 100)) {
@@ -37,13 +39,13 @@ gacrun_toc <- function(water, ebct = 10, model = "Zachman", media_size = "12x40"
   if (model == "Zachman") {
     # check that media_size and ebct are inputted correctly
     if (media_size != "12x40" && media_size != "8x30") {
-      stop("GAC media size must be either 12x40 or 8x30.")
+      cli::cli_abort("GAC media size must be {.val 12x40} or {.val 8x30}.")
     }
     if (ebct != 10 && ebct != 20) {
-      stop("Zachman model only apply for GAC reactors with ebct of 10 or 20 minutes.")
+      cli::cli_abort("The Zachman model only applies for GAC reactors with {.arg ebct} of 10 or 20 minutes.")
     }
 
-    x_norm <- seq(20, 70, 0.5) # x_norm represents the normalized effluent TOC concentration
+    x_norm <- seq(20, 70, 0.5) # x_norm represents the normalized effluent DOC concentration
     ### Implementation with the Zachman and Summers model
     # Equations for A and BV according to Zachman and Summers 2010
     if (media_size == "12x40" && ebct == 10) {
@@ -56,23 +58,23 @@ gacrun_toc <- function(water, ebct = 10, model = "Zachman", media_size = "12x40"
       A <- 202 * x_norm^2 - 5995 * x_norm + 261914
     }
 
-    bv <- A * water@toc^-1 * water@ph^-1.5
+    bv <- A * water@doc^-1 * water@ph^-1.5
     x_norm <- x_norm / 100
   } else if (model == "WTP") {
     ### Implementation from the WTP Model v. 2.0 Manual
-    # inputs: ph_inf, toc_inf, RT, ebct (10 or 20)
-    # ebct = 10: 1.51 < toc_inf < 11.5 ; 6.07 < ph_inf < 9.95
-    # ebct = 20: 1.51 < toc_inf < 11.5 ; 6.14 < ph_inf < 9.95
+    # inputs: ph_inf, doc_inf, RT, ebct (10 or 20)
+    # ebct = 10: 1.51 < doc_inf < 11.5 ; 6.07 < ph_inf < 9.95
+    # ebct = 20: 1.51 < doc_inf < 11.5 ; 6.14 < ph_inf < 9.95
     ph_base <- 7.93 # mean pH for which the model was developed
     ebct_adj <- ebct * (1 - 0.044 * (ph_base - water@ph))
 
-    A0 <- water@toc * ((-1.148 * 10^-3 * ebct_adj) + 1.208 * 10^-1) - 2.710 * 10^-6 * ebct_adj + 1.097 * 10^-5
-    Af <- water@toc * ((3.244 * 10^-3 * ebct_adj) + 5.383 * 10^-1) + 1.033 * 10^-5 * ebct_adj + 1.759 * 10^-5
-    D <- water@toc * ((-1.079 * 10^-5 * ebct_adj) + 4.457 * 10^-4) + 1.861 * 10^-5 * ebct_adj - 2.809 * 10^-4
+    A0 <- water@doc * ((-1.148 * 10^-3 * ebct_adj) + 1.208 * 10^-1) - 2.710 * 10^-6 * ebct_adj + 1.097 * 10^-5
+    Af <- water@doc * ((3.244 * 10^-3 * ebct_adj) + 5.383 * 10^-1) + 1.033 * 10^-5 * ebct_adj + 1.759 * 10^-5
+    D <- water@doc * ((-1.079 * 10^-5 * ebct_adj) + 4.457 * 10^-4) + 1.861 * 10^-5 * ebct_adj - 2.809 * 10^-4
     B <- 100
     # bv <- 1440 * RT / ebct_adj
     if (suppressWarnings(all(bvs == c(2000, 20000, 100)))) {
-      if (water@toc <= 1.5) {
+      if (water@doc <= 1.5) {
         bv_max <- 40000
       } else {
         bv_max <- 20000
@@ -82,10 +84,10 @@ gacrun_toc <- function(water, ebct = 10, model = "Zachman", media_size = "12x40"
       bv <- seq(bvs[1], bvs[2], bvs[3])
     }
 
-    toc_eff <- A0 + Af / (1 + B * exp(-D * bv))
-    x_norm <- toc_eff / water@toc # ranges 10 to 72.5%
+    doc_eff <- A0 + Af / (1 + B * exp(-D * bv))
+    x_norm <- doc_eff / water@doc # ranges 10 to 72.5%
   } else {
-    stop("Please choose either Zachman or WTP as the model.")
+    cli::cli_abort("{.arg model} must be {.val Zachman} or {.val WTP}.")
   }
 
   breakthrough <- data.frame(bv = bv, x_norm = x_norm)
@@ -110,8 +112,15 @@ gacrun_toc <- function(water, ebct = 10, model = "Zachman", media_size = "12x40"
 #'
 #' @returns `gacrun_toc_df` returns a data frame containing columns of the breakthrough curve (breakthrough and bed volume).
 #'
-gacrun_toc_df <- function(df, input_water = "defined", water_prefix = TRUE,
-                          ebct = "use_col", model = "use_col", media_size = "use_col", bvs = "use_col") {
+gacrun_toc_df <- function(
+  df,
+  input_water = "defined",
+  water_prefix = TRUE,
+  ebct = "use_col",
+  model = "use_col",
+  media_size = "use_col",
+  bvs = "use_col"
+) {
   # This allows for the function to process unquoted column names without erroring
   ebct <- tryCatch(ebct, error = function(e) enquo(ebct))
   model <- tryCatch(model, error = function(e) enquo(model))
@@ -125,10 +134,15 @@ gacrun_toc_df <- function(df, input_water = "defined", water_prefix = TRUE,
 
   validate_water_helpers(df, input_water)
   # This returns a dataframe of the input arguments and the correct column names for the others
-  arguments <- construct_helper(df, all_args = list(
-    "ebct" = ebct, "model" = model,
-    "media_size" = media_size, "bvs" = bvs
-  ))
+  arguments <- construct_helper(
+    df,
+    all_args = list(
+      "ebct" = ebct,
+      "model" = model,
+      "media_size" = media_size,
+      "bvs" = bvs
+    )
+  )
   final_names <- arguments$final_names
 
   # Only join inputs if they aren't in existing dataframe
@@ -137,27 +151,46 @@ gacrun_toc_df <- function(df, input_water = "defined", water_prefix = TRUE,
   }
   # Add columns with default arguments
   defaults_added <- handle_defaults(
-    df, final_names,
+    df,
+    final_names,
     list(ebct = 10, model = "Zachman", media_size = "12x40", bvs = list(c(2000, 20000, 100)))
   )
   df <- defaults_added$data %>%
     transform(ID = seq(1, nrow(df), 1))
 
-  bv_df <- do.call(rbind, lapply(seq_len(nrow(df)), function(i) {
-    result <- gacrun_toc(
-      water = df[[input_water]][[i]],
-      ebct = df[[final_names$ebct]][i],
-      model = df[[final_names$model]][i],
-      media_size = df[[final_names$media_size]][i],
-      bvs = if (any(df[[final_names$bvs]][[i]] == "custom")) {
-        input_bvs
-      } else {
-        df[[final_names$bvs]][[i]]
-      }
-    )
-    result$ID <- df$ID[i]
-    return(result)
-  }))
+warning_counts <- list()
+
+  bv_df <- do.call(
+    rbind,
+    lapply(seq_len(nrow(df)), function(i) {
+      withCallingHandlers(
+        {
+          result <- gacrun_toc(
+            water = df[[input_water]][[i]],
+            ebct = df[[final_names$ebct]][i],
+            model = df[[final_names$model]][i],
+            media_size = df[[final_names$media_size]][i],
+            bvs = if (any(df[[final_names$bvs]][[i]] == "custom")) {
+              input_bvs
+            } else {
+              df[[final_names$bvs]][[i]]
+            }
+          )
+          result$ID <- df$ID[i]
+          result
+        },
+        warning = function(w) {
+          msg <- conditionMessage(w)
+          warning_counts[[msg]] <<- (warning_counts[[msg]] %||% 0) + 1L
+          invokeRestart("muffleWarning")
+        }
+      )
+    })
+  )
+
+for (msg in names(warning_counts)) {
+    tidywater_warn("{msg} ({warning_counts[[msg]]} row{?s} affected.)")
+  }
 
   # Rename columns in bv_df except for 'ID'
   if (water_prefix) {

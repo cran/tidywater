@@ -48,8 +48,9 @@ overflow: visible;
 }
 </style>
 <style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
 pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
 pre > code.sourceCode > span:empty { height: 1.2em; }
 .sourceCode { overflow: visible; }
 code.sourceCode > span { color: inherit; text-decoration: inherit; }
@@ -60,7 +61,7 @@ div.sourceCode { overflow: auto; }
 }
 @media print {
 pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
 }
 pre.numberSource code
 { counter-reset: source-line 0; }
@@ -359,11 +360,9 @@ until you are familiar with the system.</p>
 <span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>  <span class="at">cond =</span> <span class="dv">100</span>,</span>
 <span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>  <span class="at">toc =</span> <span class="dv">3</span>, <span class="at">uv254 =</span> .<span class="dv">02</span>, <span class="at">br =</span> <span class="dv">50</span></span>
 <span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>)</span>
-<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="co">#&gt; Warning in define_water(ph = 7, temp = 15, alk = 100, tot_hard = 100, na = 100,</span></span>
-<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="co">#&gt; : Missing values for calcium and magnesium but total hardness supplied. Default</span></span>
-<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="co">#&gt; ratio of 65% Ca2+ and 35% Mg2+ will be used.</span></span>
-<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="co">#&gt; Warning in define_water(ph = 7, temp = 15, alk = 100, tot_hard = 100, na = 100,</span></span>
-<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a><span class="co">#&gt; : Missing value for DOC. Default value of 95% of TOC will be used.</span></span></code></pre></div>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="co">#&gt; Warning: Missing values for `ca` and `mg`; estimated from total hardness using a 65%/35%</span></span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="co">#&gt; Ca/Mg split.</span></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="co">#&gt; Warning: Missing value for `doc`; defaulting to 95% of TOC.</span></span></code></pre></div>
 <p>Now that we have a water, we can apply treatment models to it. The
 main models require a <code>water</code> input and will usually output
 another <code>water</code> or a number. Functions in tidywater follow
@@ -382,13 +381,12 @@ coagulation on the given <code>mywater</code> conditions we set up
 earlier. Start by determining the impact of adding 5 mg/L HCl and 20
 mg/L alum as the coagulant.</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>dosed_water <span class="ot">&lt;-</span> <span class="fu">chemdose_ph</span>(mywater, <span class="at">hcl =</span> <span class="dv">5</span>, <span class="at">alum =</span> <span class="dv">20</span>)</span>
-<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="co">#&gt; Warning in chemdose_ph(mywater, hcl = 5, alum = 20): Sulfate-containing</span></span>
-<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co">#&gt; chemical dosed, but so4 water slot is NA. Slot not updated because background</span></span>
-<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co">#&gt; so4 unknown.</span></span>
-<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>mywater<span class="sc">@</span>ph</span>
-<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt; [1] 7</span></span>
-<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a>dosed_water<span class="sc">@</span>ph</span>
-<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt; [1] 6.68</span></span></code></pre></div>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="co">#&gt; Warning: Sulfate-containing chemical dosed, but so4 slot is &quot;NA&quot;; slot not updated</span></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co">#&gt; because background SO4 is unknown.</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>mywater<span class="sc">@</span>ph</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt; [1] 7</span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>dosed_water<span class="sc">@</span>ph</span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt; [1] 6.68</span></span></code></pre></div>
 <p>Now <code>dosed_water</code> has updated pH chemistry based on the
 hydrochloric acid and alum doses. However, other slots in the water,
 such as TOC, have not been updated. If we also want to know how the
@@ -411,14 +409,13 @@ compactly. Notice that the pH and DOC values returned from
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>piped_coag_water <span class="ot">&lt;-</span> mywater <span class="sc">%&gt;%</span></span>
 <span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>  <span class="fu">chemdose_ph</span>(<span class="at">hcl =</span> <span class="dv">5</span>, <span class="at">alum =</span> <span class="dv">20</span>) <span class="sc">%&gt;%</span></span>
 <span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>  <span class="fu">chemdose_toc</span>(<span class="at">alum =</span> <span class="dv">20</span>)</span>
-<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co">#&gt; Warning in chemdose_ph(., hcl = 5, alum = 20): Sulfate-containing chemical</span></span>
-<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="co">#&gt; dosed, but so4 water slot is NA. Slot not updated because background so4</span></span>
-<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">#&gt; unknown.</span></span>
-<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a></span>
-<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a>piped_coag_water<span class="sc">@</span>ph</span>
-<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="co">#&gt; [1] 6.68</span></span>
-<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a>piped_coag_water<span class="sc">@</span>doc</span>
-<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a><span class="co">#&gt; [1] 2.428063</span></span></code></pre></div>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co">#&gt; Warning: Sulfate-containing chemical dosed, but so4 slot is &quot;NA&quot;; slot not updated</span></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="co">#&gt; because background SO4 is unknown.</span></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a>piped_coag_water<span class="sc">@</span>ph</span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="co">#&gt; [1] 6.68</span></span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a>piped_coag_water<span class="sc">@</span>doc</span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a><span class="co">#&gt; [1] 2.428063</span></span></code></pre></div>
 <p>We can also solve for chemical doses to achieve a target pH with
 <code>solvedose_ph</code>. This function outputs a number instead of a
 water.</p>
@@ -439,14 +436,13 @@ use <code>summarize_wq</code> to view different groups of parameters in
 the water.</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>dist_water <span class="ot">&lt;-</span> <span class="fu">chemdose_ph</span>(fin_water, <span class="at">naocl =</span> <span class="dv">4</span>) <span class="sc">%&gt;%</span></span>
 <span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>  <span class="fu">chemdose_dbp</span>(<span class="at">cl2 =</span> <span class="dv">4</span>, <span class="at">time =</span> <span class="dv">24</span>, <span class="at">treatment =</span> <span class="st">&quot;coag&quot;</span>)</span>
-<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="co">#&gt; Warning in chemdose_dbp(., cl2 = 4, time = 24, treatment = &quot;coag&quot;): UV254 is</span></span>
-<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="co">#&gt; outside the model bounds of 0.016 &lt;= UV254 &lt;= 0.215 cm-1 for coagulated water.</span></span>
-<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="co">#&gt; Warning in chemdose_dbp(., cl2 = 4, time = 24, treatment = &quot;coag&quot;): Temperature</span></span>
-<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a><span class="co">#&gt; is outside the model bounds of temp=20 Celsius for coagulated water.</span></span>
-<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a><span class="co">#&gt; Warning in chemdose_dbp(., cl2 = 4, time = 24, treatment = &quot;coag&quot;): pH is</span></span>
-<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a><span class="co">#&gt; outside the model bounds of pH = 7.5 for coagulated water</span></span>
-<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a></span>
-<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a><span class="fu">summarize_wq</span>(dist_water, <span class="st">&quot;dbps&quot;</span>)</span></code></pre></div>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="co">#&gt; Warning: UV254 is outside the model bounds (0.016 ≤ UV254 ≤ 0.215 cm^-1) for coagulated</span></span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="co">#&gt; water.</span></span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="co">#&gt; Warning: Temperature is outside the model bounds (temp = 20 °C) for coagulated</span></span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a><span class="co">#&gt; water.</span></span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a><span class="co">#&gt; Warning: pH is outside the model bounds (pH = 7.5) for coagulated water.</span></span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a></span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a><span class="fu">summarize_wq</span>(dist_water, <span class="st">&quot;dbps&quot;</span>)</span></code></pre></div>
 <table class="kable_wrapper">
 <tbody>
 <tr>

@@ -23,19 +23,19 @@
 #'
 blend_waters <- function(waters, ratios) {
   if (length(waters) != length(ratios)) {
-    stop("Length of waters vector must equal length of ratios vector.")
+    cli::cli_abort("Length of {.arg waters} must equal length of {.arg ratios}.")
   }
 
   if (!is.list(waters)) {
-    stop("Waters must be provided as a vector.")
+    cli::cli_abort("{.arg waters} must be provided as a list/vector.")
   }
 
   if (!is.numeric(ratios)) {
-    stop("Ratios must provided as a numeric vector.")
+    cli::cli_abort("{.arg ratios} must be a numeric vector.")
   }
 
   if (round(sum(ratios), 5) != 1.0) {
-    stop("Blend ratios do not sum up to 1")
+    cli::cli_abort("{.arg ratios} do not sum to 1.")
     # print(sum(ratios)) # this is for checking why the function is breaking
   }
 
@@ -59,15 +59,17 @@ blend_waters <- function(waters, ratios) {
     missing1 <- setdiff(otherparams, parameters)
     if (!rlang::is_empty(missingn) | !rlang::is_empty(missing1)) {
       missing <- paste0(c(missingn, missing1), collapse = ", ")
-      warning(paste0(
-        "The following parameters are missing in some of the waters and will be set to NA in the blend:\n   ", missing,
-        "\nTo fix this, make sure all waters provided have the same parameters specified."
-      ))
+      tidywater_warn(c("The following parameters are missing in some waters
+       and will be set to {.val NA} in the blend:", "i" = "{missing}",
+        "i" = "Make sure all waters have the same parameters specified."))
     }
   }
 
   not_averaged <- c(
-    "ph", "kw", "estimated"
+    "ph",
+    "kw",
+    "estimated",
+    "ks"
   )
   parameters <- setdiff(parameters, not_averaged)
 
@@ -78,14 +80,16 @@ blend_waters <- function(waters, ratios) {
     for (i in 1:length(waters)) {
       temp_water <- waters[[i]]
       if (!methods::is(temp_water, "water")) {
-        stop("All input waters must be of class 'water'. Create a water using define_water.")
+        cli::cli_abort("All input waters must be of class {.cls water}. Create waters using {.fn define_water}.")
       }
       ratio <- ratios[i]
 
       if (is.na(methods::slot(blended_water, param))) {
         methods::slot(blended_water, param) <- methods::slot(temp_water, param) * ratio
       } else {
-        methods::slot(blended_water, param) <- methods::slot(temp_water, param) * ratio + methods::slot(blended_water, param)
+        methods::slot(blended_water, param) <- methods::slot(temp_water, param) *
+          ratio +
+          methods::slot(blended_water, param)
       }
     }
   }
@@ -106,8 +110,10 @@ blend_waters <- function(waters, ratios) {
   # Calculate new pH, H+ and OH- concentrations
   # Calculate kw from temp
   tempa <- blended_water@temp + 273.15 # absolute temperature (K)
-  pkw <- round((4787.3 / (tempa)) + (7.1321 * log10(tempa)) + (0.010365 * tempa) - 22.801, 1) # water equilibrium rate constant temperature conversion from Harned & Hamer (1933)
-  blended_water@kw <- 10^-pkw
+  discons <- tidywater::discons
+  blended_water@kw <- K_temp_adjust(discons["water", ]$deltah, discons["water", ]$k, blended_water@temp)
+  # Correct eq constants
+  blended_water@ks <- correct_k(blended_water)
 
   # Calculate new pH
   ph <- solve_ph(blended_water)
@@ -117,33 +123,33 @@ blend_waters <- function(waters, ratios) {
   blended_water@h <- h
   blended_water@ph <- ph
 
-  # Correct eq constants
-  k <- correct_k(blended_water)
-
   # Recalculate carbonate, dic, phosphate, ocl, and nh4 speciation given new pH
-  alpha0 <- calculate_alpha0_carbonate(h, k) # proportion of total carbonate as H2CO3
-  alpha1 <- calculate_alpha1_carbonate(h, k) # proportion of total carbonate as HCO3-
-  alpha2 <- calculate_alpha2_carbonate(h, k) # proportion of total carbonate as CO32-
+  alpha0 <- calculate_alpha0_carbonate(h, blended_water@ks) # proportion of total carbonate as H2CO3
+  alpha1 <- calculate_alpha1_carbonate(h, blended_water@ks) # proportion of total carbonate as HCO3-
+  alpha2 <- calculate_alpha2_carbonate(h, blended_water@ks) # proportion of total carbonate as CO32-
   blended_water@h2co3 <- blended_water@tot_co3 * alpha0
+  blended_water@co2 <- blended_water@h2co3 * tidywater::mweights$co2 * 1000
   blended_water@hco3 <- blended_water@tot_co3 * alpha1
   blended_water@co3 <- blended_water@tot_co3 * alpha2
 
   blended_water@dic <- blended_water@tot_co3 * tidywater::mweights$dic * 1000
 
-  alpha1p <- calculate_alpha1_phosphate(h, k) # proportion of total phosphate as H2PO4-
-  alpha2p <- calculate_alpha2_phosphate(h, k) # proportion of total phosphate as HPO42-
-  alpha3p <- calculate_alpha3_phosphate(h, k) # proportion of total phosphate as PO43-
+  alpha1p <- calculate_alpha1_phosphate(h, blended_water@ks) # proportion of total phosphate as H2PO4-
+  alpha2p <- calculate_alpha2_phosphate(h, blended_water@ks) # proportion of total phosphate as HPO42-
+  alpha3p <- calculate_alpha3_phosphate(h, blended_water@ks) # proportion of total phosphate as PO43-
 
   blended_water@h2po4 <- blended_water@tot_po4 * alpha1p
   blended_water@hpo4 <- blended_water@tot_po4 * alpha2p
   blended_water@po4 <- blended_water@tot_po4 * alpha3p
 
-  blended_water@ocl <- blended_water@free_chlorine * calculate_alpha1_hypochlorite(h, k)
-  blended_water@nh4 <- blended_water@tot_nh3 * calculate_alpha1_ammonia(h, k)
+  blended_water@ocl <- blended_water@free_chlorine * calculate_alpha1_hypochlorite(h, blended_water@ks)
+  blended_water@nh4 <- blended_water@tot_nh3 * calculate_alpha1_ammonia(h, blended_water@ks)
 
-  if (blended_water@tot_nh3 > 0 &
-    (blended_water@free_chlorine > 0 | blended_water@combined_chlorine > 0)) {
-    warning("Both chlorine and ammonia are present and may form chloramines.\nUse chemdose_chloramine for breakpoint caclulations.")
+  if (
+    blended_water@tot_nh3 > 0 &
+      (blended_water@free_chlorine > 0 | blended_water@combined_chlorine > 0)
+  ) {
+    tidywater_warn("Both chlorine and ammonia are present and may form chloramines. Use {.fn chemdose_chloramine} for breakpoint calculations.")
   }
 
   return(blended_water)
@@ -200,32 +206,61 @@ blend_waters_df <- function(df, waters, ratios, output_water = "blended") {
   for (water_col in waters) {
     if (is.character(water_col)) {
       if (!(water_col %in% colnames(df))) {
-        stop(paste("Specified input_water column -", water_col, "- not found. Check spelling or create a water class column using define_water_df()."))
+        cli::cli_abort("Specified input_water column {.val {water_col}} not found.
+         Check spelling or create a water class column using {.fn define_water_df}.")
       } else if (!all(sapply(df[[water_col]], function(x) methods::is(x, "water")))) {
-        stop(paste("Specified input_water column", water_col, "does not contain water class objects. Use define_water_df() or specify a different column."))
+        cli::cli_abort("Column {.val {water_col}} does not contain water class objects. 
+        Use {.fn define_water_df} or specify a different column.")
       }
     } else if (!is.character(water_col) & !methods::is(water_col, "water")) {
-      stop(paste("Specified input_water column", water_col, "does not contain water class objects. Use define_water_df() or specify a different column."))
+      cli::cli_abort("Column {.val {water_col}} does not contain water class objects. 
+      Use {.fn define_water_df} or specify a different column.")
     }
   }
 
   output <- df
   output$waters <- apply(output[, water_names], 1, function(row) as.list(row))
 
+warning_counts1 <- list()
+warning_counts2 <- list()
+
   if (is.numeric(ratios)) {
     output$ratios <- replicate(nrow(output), ratios, simplify = FALSE) # vector of ratios
   } else {
-    output$ratios <- lapply(seq_len(nrow(output)), function(i) { # column names
-      as.numeric(unlist(output[i, ratios]))
+    output$ratios <- lapply(seq_len(nrow(output)), function(i) {
+      withCallingHandlers(
+      # column names
+      as.numeric(unlist(output[i, ratios])),
+    warning = function(w) {
+      msg <- conditionMessage(w)
+      warning_counts1[[msg]] <<- (warning_counts1[[msg]] %||% 0) + 1L
+      invokeRestart("muffleWarning")
+    }
+  )
     })
   }
 
+  for (msg in names(warning_counts1)) {
+    tidywater_warn("{msg} ({warning_counts1[[msg]]} row{?s} affected.)")
+  }
+
   output[[output_water]] <- lapply(seq_len(nrow(output)), function(i) {
+      withCallingHandlers(
     blend_waters(
       waters = output$waters[[i]],
       ratios = output$ratios[[i]]
-    )
+    ),
+    warning = function(w) {
+      msg <- conditionMessage(w)
+      warning_counts2[[msg]] <<- (warning_counts2[[msg]] %||% 0) + 1L
+      invokeRestart("muffleWarning")
+    }
+  )
   })
+
+  for (msg in names(warning_counts2)) {
+    tidywater_warn("{msg} ({warning_counts2[[msg]]} row{?s} affected.)")
+  }
 
   cols_to_remove <- c("waters", "ratios", grep("merging_water_", names(output), value = TRUE))
   output <- output[, !(names(output) %in% cols_to_remove)]

@@ -39,10 +39,10 @@
 solvect_chlorine <- function(water, time, residual, baffle, free_cl_slot = "residual_only") {
   if (free_cl_slot == "slot_only") {
     validate_water(water, c("ph", "temp", "free_chlorine"))
-    residual <- water@free_chlorine
+    residual <- convert_units(water@free_chlorine, "cl2", "M", "mg/L")
   } else if (free_cl_slot == "sum_with_residual") {
     validate_water(water, c("ph", "temp", "free_chlorine"))
-    residual <- residual + water@free_chlorine
+    residual <- residual + convert_units(water@free_chlorine, "cl2", "M", "mg/L")
   } else {
     validate_water(water, c("ph", "temp"))
   }
@@ -65,19 +65,25 @@ solvect_chlorine <- function(water, time, residual, baffle, free_cl_slot = "resi
   # determine virus log removal based on EPA Guidance Manual Table E-7
   if (ph < 6 | ph > 10) {
     vlog_removal <- NA_real_
-    warning("pH is out of range: virus log removal calculation only valid when pH is between 6-10.")
+    tidywater_warn("pH is out of range; virus log removal is only valid for pH 6 to 10.")
   } else {
     if (ph > 9 & ph < 10) {
       ph <- round(ph)
-      warning("Virus log removal estimated to closest pH in EPA Guidance Manual Table E-7")
+      tidywater_warn("Virus log removal estimated to the closest pH in EPA Guidance Manual Table E-7.")
     }
     tempr <- tidywater::vlog_removalcts$temp_value[which.min(abs(tidywater::vlog_removalcts$temp_value - temp))]
     if (temp != tempr) {
-      warning("Virus log removal estimated to closest temperature in EPA Guidance Manual Table E-7")
+      tidywater_warn("Virus log removal estimated to the closest temperature in EPA Guidance Manual Table E-7.")
     }
 
     # Determine ph_range key
-    ph_key <- if (ph >= 6 && ph <= 9) "6-9" else if (ph == 10) "10" else NULL
+    ph_key <- if (ph >= 6 && ph <= 9) {
+      "6-9"
+    } else if (ph == 10) {
+      "10"
+    } else {
+      NULL
+    }
 
     # Filter the relevant rows
     vlog_table <- subset(
@@ -98,11 +104,16 @@ solvect_chlorine <- function(water, time, residual, baffle, free_cl_slot = "resi
 
     if (any(is.na(vlog_removal))) {
       vlog_removal <- NA_real_
-      warning("pH or contact time out of range for virus log removal calculation. See EPA Guidance Manual Table E-7 for valid ranges.")
+      tidywater_warn("pH or contact time is out of range for virus log removal. See EPA Guidance Manual Table E-7 for valid ranges.")
     }
   }
 
-  data.frame("ct_required" = ct_required, "ct_actual" = ct_actual, "glog_removal" = giardia_log_removal, "vlog_removal" = vlog_removal)
+  data.frame(
+    "ct_required" = ct_required,
+    "ct_actual" = ct_actual,
+    "glog_removal" = giardia_log_removal,
+    "vlog_removal" = vlog_removal
+  )
 }
 
 
@@ -130,10 +141,15 @@ solvect_chlorine <- function(water, time, residual, baffle, free_cl_slot = "resi
 #' @returns `solvect_chlorine_df` returns a data frame containing the original data frame and columns for required CT, actual CT, and giardia log removal.
 #' @export
 
-solvect_chlorine_df <- function(df, input_water = "defined",
-                                time = "use_col", residual = "use_col", baffle = "use_col",
-                                free_cl_slot = "residual_only",
-                                water_prefix = TRUE) {
+solvect_chlorine_df <- function(
+  df,
+  input_water = "defined",
+  time = "use_col",
+  residual = "use_col",
+  baffle = "use_col",
+  free_cl_slot = "residual_only",
+  water_prefix = TRUE
+) {
   validate_water_helpers(df, input_water)
   # This allows for the function to process unquoted column names without erroring
   time <- tryCatch(time, error = function(e) enquo(time))
@@ -146,16 +162,33 @@ solvect_chlorine_df <- function(df, input_water = "defined",
   if (length(arguments$new_cols) > 0) {
     df <- merge(df, as.data.frame(arguments$new_cols), by = NULL)
   }
+warning_counts <- list()
 
-  ct_df <- do.call(rbind, lapply(seq_len(nrow(df)), function(i) {
-    solvect_chlorine(
-      water = df[[input_water]][[i]],
-      time = df[[final_names$time]][i],
-      residual = df[[final_names$residual]][i],
-      baffle = df[[final_names$baffle]][i],
-      free_cl_slot = free_cl_slot
-    )
-  }))
+
+  ct_df <- do.call(
+    rbind,
+    lapply(seq_len(nrow(df)), function(i) {
+      withCallingHandlers(
+      solvect_chlorine(
+        water = df[[input_water]][[i]],
+        time = df[[final_names$time]][i],
+        residual = df[[final_names$residual]][i],
+        baffle = df[[final_names$baffle]][i],
+        free_cl_slot = free_cl_slot
+      ),
+      warning = function(w) {
+        msg <- conditionMessage(w)
+        warning_counts[[msg]] <<- (warning_counts[[msg]] %||% 0) +1L
+        invokeRestart("muffleWarning")
+      }
+    )}
+
+  )
+)
+
+for (msg in names(warning_counts)) {
+  tidywater_warn("{msg} ({warning_counts[[msg]]} row{?s} affected.)")
+}
 
   if (water_prefix) {
     names(ct_df) <- paste0(input_water, "_", names(ct_df))

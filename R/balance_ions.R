@@ -28,15 +28,15 @@
 #'
 balance_ions <- function(water, anion = "cl", cation = "na") {
   if (!methods::is(water, "water")) {
-    stop("Input water must be of class 'water'. Create a water using define_water.")
+    cli::cli_abort("Input water must be of class {.cls water}. Create a water using {.fn define_water}.")
   }
 
   # check for acceptable cations/anions
   if (!(anion %in% c("cl", "so4"))) {
-    stop("Anion must be one of 'cl' or 'so4'. No other ions supported at this time.")
+    cli::cli_abort("{.arg anion} must be one of {.val cl} or {.val so4}.")
   }
   if (!(cation %in% c("na", "k", "ca", "mg"))) {
-    stop("Cation must be one of 'na', 'k', 'ca', or 'mg'. No other ions supported at this time.")
+    cli::cli_abort("{.arg cation} must be one of {.val na}, {.val k}, {.val ca}, or {.val mg}.")
   }
 
   # Set up ions to be changed
@@ -47,16 +47,34 @@ balance_ions <- function(water, anion = "cl", cation = "na") {
 
   cl_new <- water@cl
   so4_new <- water@so4
-
+  
   # calculate charge
-  cations <- sum(water@na, 2 * water@ca, 2 * water@mg, water@k, water@h, na.rm = TRUE)
-  anions <- sum(water@cl, 2 * water@so4, water@hco3, 2 * water@co3, water@h2po4, 2 * water@hpo4, 3 * water@po4,
-    water@oh, water@ocl,
+  cations <- sum(water@na,
+    2 * water@ca,
+    2 * water@mg, 
+    water@k, 
+    water@h, 
+    3* water@fe, 
+    3*water@al, 
+    2* water@mn, na.rm = TRUE)
+  
+  anions <- sum(
+    water@cl,
+    2 * water@so4,
+    water@hco3,
+    2 * water@co3,
+    water@h2po4,
+    2 * water@hpo4,
+    3 * water@po4,
+    water@oh,
+    water@ocl,
+    water@f,
+    water@br,
     na.rm = TRUE
   )
 
   if (is.na(cations) | is.na(anions)) {
-    stop("Missing cations or anions for balance. Make sure pH and alkalinity are specified when define_water is called.")
+    cli::cli_abort("Missing cations or anions for ion balance. Make sure {.arg ph} and {.arg alk} are specified in {.fn define_water}.")
   }
 
   # Initialize these objects so they can be used later.
@@ -91,6 +109,7 @@ balance_ions <- function(water, anion = "cl", cation = "na") {
       mg_new <- ifelse(is.na(water@mg), add_mg, water@mg + add_mg)
       water@estimated <- paste(water@estimated, "mg", sep = "_")
     }
+    
     # add chloride or sulfate if anions are needed
     # Similar logic to cations, although sulfate is typically at higher concentrations than potassium.
     # Pretty standard to add Na and Cl because those are just regular salt. It does affect CSMR, but almost nothing else.
@@ -105,6 +124,7 @@ balance_ions <- function(water, anion = "cl", cation = "na") {
       so4_new <- ifelse(is.na(water@so4), add_so4, water@so4 + add_so4)
       water@estimated <- paste(water@estimated, "so4", sep = "_")
     }
+
   }
 
   water@na <- na_new
@@ -118,10 +138,14 @@ balance_ions <- function(water, anion = "cl", cation = "na") {
   # Update TDS/cond/IS if needed.
   if (grepl("tds", water@estimated) & grepl("cond", water@estimated)) {
     # Update TDS and cond if they were estimated from IS. Otherwise, assume initial values were measured.
-    water@tds <- water@tds + convert_units(add_na, "na", "M", "mg/L") + convert_units(add_k, "k", "M", "mg/L") +
-      convert_units(add_ca, "ca", "M", "mg/L") + convert_units(add_mg, "mg", "M", "mg/L") +
-
-      convert_units(add_cl, "cl", "M", "mg/L") + convert_units(add_so4, "so4", "M", "mg/L")
+    water@tds <- water@tds +
+      convert_units(add_na, "na", "M", "mg/L") +
+      convert_units(add_k, "k", "M", "mg/L") +
+      convert_units(add_ca, "ca", "M", "mg/L") +
+      convert_units(add_mg, "mg", "M", "mg/L") +
+    
+      convert_units(add_cl, "cl", "M", "mg/L") +
+      convert_units(add_so4, "so4", "M", "mg/L")
 
     water@cond <- correlate_ionicstrength(water@tds, from = "tds", to = "cond")
     # Similarly, IS should only update from the ion balance if TDS and cond were estimates.
@@ -147,18 +171,38 @@ balance_ions <- function(water, anion = "cl", cation = "na") {
 #' @export
 #' @returns `balance_ions_df` returns a dataframe with a new column with the ion balanced water
 
-balance_ions_df <- function(df, input_water = "defined", output_water = "balanced",
-                            pluck_cols = FALSE, water_prefix = TRUE,
-                            anion = "cl", cation = "na") {
+balance_ions_df <- function(
+  df,
+  input_water = "defined",
+  output_water = "balanced",
+  pluck_cols = FALSE,
+  water_prefix = TRUE,
+  anion = "cl",
+  cation = "na"
+) {
   validate_water_helpers(df, input_water)
 
+  warning_counts <- list()
+
   df[[output_water]] <- lapply(seq_len(nrow(df)), function(i) {
+    withCallingHandlers(
     balance_ions(
       water = df[[input_water]][[i]],
       anion = anion,
       cation = cation
-    )
+    ),
+    warning = function(w) {
+      msg <- conditionMessage(w)
+      warning_counts[[msg]] <<- (warning_counts[[msg]] %||% 0) +1L
+      invokeRestart("muffleWarning")
+    }
+  )
   })
+
+for (msg in names(warning_counts)) {
+  tidywater_warn("{msg} ({warning_counts[[msg]]} row{?s} affected.)")
+}
+
 
   if (pluck_cols) {
     df <- df |>
